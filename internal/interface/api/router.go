@@ -8,18 +8,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetupRouter configures and returns the Gin router
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	userRepo := repository.NewUserRepository()
 	userUsecase := usecase.NewUserUseCase(userRepo)
 	userHandler := handler.NewUserHandler(userUsecase)
+	healthHandler := handler.NewHealthHandler()
 
-	setupHealthRoutes(r)
 
 	v1 := r.Group("/api/v1")
 	{
+		setupHealthRoutes(v1, healthHandler)
 		setupUserRoutes(v1, userHandler)
 	}
 

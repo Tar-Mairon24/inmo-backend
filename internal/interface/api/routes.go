@@ -1,9 +1,6 @@
 package api
 
 import (
-	"net/http"
-	"time"
-
 	"inmo-backend/internal/interface/api/handler"
 
 	"github.com/gin-gonic/gin"
@@ -18,40 +15,11 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
 	}
 }
 
-func setupHealthRoutes(r *gin.Engine) {
-	// Basic health check - perfect for Docker HEALTHCHECK
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":    "OK",
-			"message":   "Server is running",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-			"service":   "inmo-backend",
-			"version":   "1.0.0", // You can make this dynamic
-		})
-	})
-
-	// Detailed health check - for monitoring and frontend
-	r.GET("/health/detailed", func(c *gin.Context) {
-		// You can add database connectivity check here
-		c.JSON(http.StatusOK, gin.H{
-			"status":    "OK",
-			"message":   "All services are operational",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-			"service":   "inmo-backend",
-			"version":   "1.0.0",
-			"checks": gin.H{
-				"database":   "connected", // TODO: Add actual DB ping
-				"memory":     "ok",        // TODO: Add memory check
-				"disk_space": "ok",        // TODO: Add disk space check
-			},
-			"uptime": "running", // TODO: Calculate actual uptime
-		})
-	})
-
-	// Simple ping endpoint - minimal response for load balancers
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
+func setupHealthRoutes(rg *gin.RouterGroup, healthHandler *handler.HealthHandler) {
+	health := rg.Group("/health")
+	{
+		health.GET("", healthHandler.RegisterHealthRoutes)						// GET api/v1/health
+		health.GET("/detailed", healthHandler.RegisterDetailedHealthRoute)		// GET api/v1/health/detailed
+		health.GET("/ping", healthHandler.RegisterPingRoute)					// GET api/v1/health/ping
+	}
 }
