@@ -11,27 +11,19 @@ import (
 )
 
 func main() {
-	// Load environment variables from .env file
 	if err := godotenv.Load(); err != nil {
 		logrus.Warn("No .env file found, using environment variables or defaults")
 	}
 
-	// Configure logging
 	logrus.SetFormatter(&logrus.JSONFormatter{})
-	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetOutput(os.Stdout)
 
-	// Initialize database
 	db.Init()
 
-	// Setup router
 	r := api.SetupRouter()
 
-	// Get server port from environment variable
 	port := os.Getenv("SERVER_PORT")
-	if port == "" {
-		port = "8080"
-	}
 
 	logrus.Infof("Starting server on port %s", port)
 	if err := r.Run(":" + port); err != nil {

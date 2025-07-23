@@ -1,6 +1,10 @@
 package api
 
 import (
+	"inmo-backend/internal/interface/api/handler"
+	"inmo-backend/internal/infrastructure/repository"
+	"inmo-backend/internal/usecase"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -8,24 +12,15 @@ import (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	// Add basic health check endpoint
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status":  "OK",
-			"message": "Server is running",
-		})
-	})
+	userRepo := repository.NewUserRepository()
+	userUsecase := usecase.NewUserUseCase(userRepo)
+	userHandler := handler.NewUserHandler(userUsecase)
 
-	// TODO: Add your API routes here
-	// Example: api/v1 route group
+	setupHealthRoutes(r)
+
 	v1 := r.Group("/api/v1")
 	{
-		// Add user routes here later
-		v1.GET("/users", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"message": "Users endpoint - TODO: implement",
-			})
-		})
+		setupUserRoutes(v1, userHandler)
 	}
 
 	return r
