@@ -15,7 +15,12 @@ func main() {
 		logrus.Warn("No .env file found, using environment variables or defaults")
 	}
 
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceColors: true,
+		FullTimestamp: true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		DisableLevelTruncation: true,
+	})
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetOutput(os.Stdout)
 

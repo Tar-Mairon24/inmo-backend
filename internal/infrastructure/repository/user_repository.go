@@ -28,3 +28,24 @@ func (r *UserRepositoryImpl) GetByID(id uint) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func (r *UserRepositoryImpl) Create(user *models.User) error {
+	if err := db.DB.Create(user).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *UserRepositoryImpl) Update(user *models.User) error {
+	if err := db.DB.Save(user).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *UserRepositoryImpl) Delete(id uint) error {
+	if err := db.DB.Delete(&models.User{}, id).Error; err != nil {
+		return err
+	}
+	return nil
+}

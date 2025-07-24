@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"inmo-backend/internal/usecase"
+	"inmo-backend/internal/domain/models"
 )
 
 type UserHandler struct {
@@ -75,3 +76,86 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		"message": "User retrieved successfully",
 	})
 }
+
+func (h *UserHandler) CreateUser(c *gin.Context) {
+	var user models.User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		logrus.WithError(err).Error("Invalid request body")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request",
+			"message": "Failed to parse user data",
+		})
+		return
+	}
+
+	if err := h.userUsecase.CreateUser(&user); err != nil {
+		logrus.WithError(err).Error("Failed to create user")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to create user",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"data":    user,
+		"message": "User created successfully",
+	})
+}
+
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+	var user models.User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		logrus.WithError(err).Error("Invalid request body")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request",
+			"message": "Failed to parse user data",
+		})
+		return
+	}
+
+	if err := h.userUsecase.UpdateUser(&user); err != nil {
+		logrus.WithError(err).Error("Failed to update user")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to update user",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":    user,
+		"message": "User updated successfully",
+	})
+}
+
+func (h *UserHandler) DeleteUser(c *gin.Context) {
+	userIDStr := c.Param("id")
+	logrus.Infof("DeleteUser endpoint called with ID: %s", userIDStr)
+
+	// Convert string ID to uint
+	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		logrus.WithError(err).Error("Invalid user ID format")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid user ID",
+			"message": "User ID must be a valid number",
+		})
+		return
+	}
+
+	if err := h.userUsecase.DeleteUser(uint(userID)); err != nil {
+		logrus.WithError(err).Error("Failed to delete user")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to delete user",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User deleted successfully",
+	})
+}
+
+

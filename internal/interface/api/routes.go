@@ -12,6 +12,9 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
 	{
 		users.GET("", userHandler.GetUsers)        // GET /api/v1/users
 		users.GET("/:id", userHandler.GetUserByID) // GET /api/v1/users/:id
+		users.POST("", userHandler.CreateUser)     // POST /api/v1/users
+		users.PUT("/:id", userHandler.UpdateUser)  // PUT /api/v1/users
+		users.DELETE("/:id", userHandler.DeleteUser) // DELETE /api/v1/users/:id
 	}
 }
 
