@@ -3,10 +3,10 @@ package models
 import "time"
 
 type User struct {
-	id	     	uint   `gorm:"primaryKey"`
-	username 	string `gorm:"unique;not null"`
-	email       string `gorm:"unique;not null"`
-	password 	string `gorm:"not null"`
-	createdAt 	time.Time `gorm:"autoCreateTime"`
-	updatedAt 	time.Time `gorm:"autoUpdateTime"`
+	Id	     	uint       `gorm:"primaryKey"`
+	Username 	string     `gorm:"unique;not null"`
+	Email       string     `gorm:"unique;not null"`
+	Password 	string     `gorm:"not null"`
+	CreatedAt 	time.Time  `gorm:"autoCreateTime"`
+	UpdatedAt 	time.Time  `gorm:"autoUpdateTime"`
 }

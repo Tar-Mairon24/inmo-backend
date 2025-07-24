@@ -7,6 +7,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+
+	"inmo-backend/internal/domain/models"
 )
 
 var DB *gorm.DB
@@ -32,4 +34,12 @@ func Init() {
 
 	DB = database
 	logrus.Info("Successfully connected to database")
+
+	err = DB.AutoMigrate(&models.User{})
+	if err != nil {
+		logrus.WithError(err).Fatal("Failed to auto-migrate database")
+	} else {
+		logrus.Info("Database auto-migration completed successfully")
+	}
+	logrus.Info("Database initialized successfully")
 }
