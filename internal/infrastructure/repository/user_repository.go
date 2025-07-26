@@ -4,6 +4,8 @@ import (
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/domain/ports"
 	"inmo-backend/internal/infrastructure/db"
+
+	"github.com/sirupsen/logrus"
 )
 
 type UserRepositoryImpl struct{}
@@ -37,15 +39,24 @@ func (r *UserRepositoryImpl) Create(user *models.User) error {
 }
 
 func (r *UserRepositoryImpl) Update(user *models.User) error {
-	if err := db.DB.Save(user).Error; err != nil {
+	var existingUser models.User
+	if err := db.DB.First(&existingUser, user.ID).Error; err != nil {
+		logrus.WithError(err).Error("User not found for update")
 		return err
 	}
+	if err := db.DB.Model(&models.User{}).Where("id = ?", user.ID).Updates(user).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update user")
+		return err	
+	}
+	logrus.Infof("User with ID %d updated successfully", user.ID)
 	return nil
 }
 
 func (r *UserRepositoryImpl) Delete(id uint) error {
 	if err := db.DB.Delete(&models.User{}, id).Error; err != nil {
+		logrus.WithError(err).Error("Failed to delete user")
 		return err
 	}
+	logrus.Infof("User with ID %d deleted successfully", id)
 	return nil
 }
