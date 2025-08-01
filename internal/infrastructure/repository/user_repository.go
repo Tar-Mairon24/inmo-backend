@@ -1,62 +1,175 @@
 package repository
 
 import (
+	"errors"
+	"time"
+
+	"database/sql"
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/domain/ports"
 	"inmo-backend/internal/infrastructure/db"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/sirupsen/logrus"
 )
 
-type UserRepositoryImpl struct{}
+type UserRepositoryImpl struct{
+	db *sql.DB
+	qb squirrel.StatementBuilderType
+}
 
 func NewUserRepository() ports.UserRepository {
-	return &UserRepositoryImpl{}
-}
-
-func (r *UserRepositoryImpl) GetAll() ([]models.User, error) {
-	var users []models.User
-	if err := db.DB.Find(&users).Error; err != nil {
-		return nil, err
+	return &UserRepositoryImpl{
+		db: db.GetSqlDB(),
+		qb: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question),
 	}
-	return users, nil
-}
-
-// GetByID retrieves a user by their ID.
-func (r *UserRepositoryImpl) GetByID(id uint) (*models.User, error) {
-	var user models.User
-	if err := db.DB.First(&user, id).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
 }
 
 func (r *UserRepositoryImpl) Create(user *models.User) error {
-	if err := db.DB.Create(user).Error; err != nil {
-		return err
+    query := r.qb.Insert("users").
+        Columns("username", "email", "password", "created_at", "updated_at").
+        Values(user.Username, user.Email, user.Password, time.Now(), time.Now())
+
+    sql, args, err := query.ToSql()
+    if err != nil {
+        return err
+    }
+
+    result, err := r.db.Exec(sql, args...)
+    if err != nil {
+        return err
+    }
+
+    id, err := result.LastInsertId()
+    if err != nil {
+        return err
+    }
+
+    user.ID = uint(id)
+    return nil
+}
+
+func (r *UserRepositoryImpl) GetAll() ([]models.User, error) {
+	logrus.Info("Retrieving all users from the database")
+	if r.db == nil {
+		logrus.Error("Database connection is nil")
+		return nil, errors.New("database connection is not initialized")
 	}
-	return nil
+	query := r.qb.Select("id", "username", "email", "created_at", "updated_at").
+		From("users").
+		OrderBy("created_at DESC")	
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to build SQL query")
+		return nil, err
+	}
+
+	rows, err := r.db.Query(sql, args...)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to execute query to get all users")
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var user models.User
+		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.UpdatedAt); err != nil {
+			logrus.WithError(err).Error("Failed to scan user row")
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		logrus.WithError(err).Error("Error occurred while iterating over user rows")
+		return nil, err
+	}
+	logrus.Infof("Retrieved %d users from the database", len(users))
+	return users, nil
+}
+
+func (r *UserRepositoryImpl) GetByID(id uint) (*models.User, error) {
+    query := r.qb.Select("id", "username", "email", "password", "created_at", "updated_at").
+        From("users").
+        Where(squirrel.Eq{"id": id}).
+        Where("deleted_at IS NULL")
+
+    sqlStr, args, err := query.ToSql()
+    if err != nil {
+        return nil, err
+    }
+
+    var user models.User
+    err = r.db.QueryRow(sqlStr, args...).Scan(
+        &user.ID, &user.Username, &user.Email, 
+        &user.Password, &user.CreatedAt, &user.UpdatedAt,
+    )
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return nil, errors.New("user not found")
+        }
+        return nil, err
+    }
+    
+
+    return &user, nil
 }
 
 func (r *UserRepositoryImpl) Update(user *models.User) error {
-	var existingUser models.User
-	if err := db.DB.First(&existingUser, user.ID).Error; err != nil {
-		logrus.WithError(err).Error("User not found for update")
-		return err
-	}
-	if err := db.DB.Model(&models.User{}).Where("id = ?", user.ID).Updates(user).Error; err != nil {
-		logrus.WithError(err).Error("Failed to update user")
-		return err	
-	}
-	logrus.Infof("User with ID %d updated successfully", user.ID)
-	return nil
+    query := r.qb.Update("users").
+        Set("username", user.Username).
+        Set("email", user.Email).
+        Set("updated_at", time.Now()).
+        Where(squirrel.Eq{"id": user.ID}).
+        Where("deleted_at IS NULL")
+
+    sql, args, err := query.ToSql()
+    if err != nil {
+        return err
+    }
+
+    result, err := r.db.Exec(sql, args...)
+    if err != nil {
+        return err
+    }
+
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        return err
+    }
+
+    if rowsAffected == 0 {
+        return errors.New("user not found")
+    }
+
+    return nil
 }
 
 func (r *UserRepositoryImpl) Delete(id uint) error {
-	if err := db.DB.Delete(&models.User{}, id).Error; err != nil {
-		logrus.WithError(err).Error("Failed to delete user")
-		return err
-	}
-	logrus.Infof("User with ID %d deleted successfully", id)
-	return nil
+    query := r.qb.Update("users").
+        Set("deleted_at", time.Now()).
+        Where(squirrel.Eq{"id": id}).
+        Where("deleted_at IS NULL")
+
+    sql, args, err := query.ToSql()
+    if err != nil {
+        return err
+    }
+
+    result, err := r.db.Exec(sql, args...)
+    if err != nil {
+        return err
+    }
+
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        return err
+    }
+
+    if rowsAffected == 0 {
+        return errors.New("user not found or already deleted")
+    }
+
+    return nil
 }
