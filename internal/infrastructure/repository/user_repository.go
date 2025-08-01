@@ -92,8 +92,7 @@ func (r *UserRepositoryImpl) GetAll() ([]models.User, error) {
 func (r *UserRepositoryImpl) GetByID(id uint) (*models.User, error) {
     query := r.qb.Select("id", "username", "email", "password", "created_at", "updated_at").
         From("users").
-        Where(squirrel.Eq{"id": id}).
-        Where("deleted_at IS NULL")
+        Where(squirrel.Eq{"id": id})
 
     sqlStr, args, err := query.ToSql()
     if err != nil {
@@ -121,8 +120,7 @@ func (r *UserRepositoryImpl) Update(user *models.User) error {
         Set("username", user.Username).
         Set("email", user.Email).
         Set("updated_at", time.Now()).
-        Where(squirrel.Eq{"id": user.ID}).
-        Where("deleted_at IS NULL")
+        Where(squirrel.Eq{"id": user.ID})
 
     sql, args, err := query.ToSql()
     if err != nil {
@@ -147,10 +145,8 @@ func (r *UserRepositoryImpl) Update(user *models.User) error {
 }
 
 func (r *UserRepositoryImpl) Delete(id uint) error {
-    query := r.qb.Update("users").
-        Set("deleted_at", time.Now()).
-        Where(squirrel.Eq{"id": id}).
-        Where("deleted_at IS NULL")
+    query := r.qb.Delete("users").
+		Where(squirrel.Eq{"id": id})
 
     sql, args, err := query.ToSql()
     if err != nil {
