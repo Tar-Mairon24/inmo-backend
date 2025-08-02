@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/domain/ports"
-	"inmo-backend/internal/infrastructure/db"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/sirupsen/logrus"
@@ -18,9 +17,9 @@ type UserRepositoryImpl struct{
 	qb squirrel.StatementBuilderType
 }
 
-func NewUserRepository() ports.UserRepository {
+func NewUserRepository(db *sql.DB) ports.UserRepository {
 	return &UserRepositoryImpl{
-		db: db.GetSqlDB(),
+		db: db,
 		qb: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question),
 	}
 }

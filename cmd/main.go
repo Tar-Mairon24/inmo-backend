@@ -6,7 +6,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 
-	"inmo-backend/internal/infrastructure/db"
+	"inmo-backend/cmd/di"
 	"inmo-backend/internal/interface/api"
 )
 
@@ -24,9 +24,9 @@ func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetOutput(os.Stdout)
 
-	db.Init()
+	container := di.NewContainer()
 
-	r := api.SetupRouter()
+	r := api.SetupRouter(container.GetHandlers())
 
 	port := os.Getenv("SERVER_PORT")
 

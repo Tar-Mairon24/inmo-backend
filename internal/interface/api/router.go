@@ -1,26 +1,18 @@
 package api
 
 import (
-	"inmo-backend/internal/interface/api/handler"
-	"inmo-backend/internal/infrastructure/repository"
-	"inmo-backend/internal/usecase"
+	"inmo-backend/cmd/di"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(handlers *di.Handlers) *gin.Engine {
 	r := gin.Default()
-
-	userRepo := repository.NewUserRepository()
-	userUsecase := usecase.NewUserUseCase(userRepo)
-	userHandler := handler.NewUserHandler(userUsecase)
-	healthHandler := handler.NewHealthHandler()
-
 
 	v1 := r.Group("/api/v1")
 	{
-		setupHealthRoutes(v1, healthHandler)
-		setupUserRoutes(v1, userHandler)
+		setupHealthRoutes(v1, handlers.HealthHandler)
+		setupUserRoutes(v1, handlers.UserHandler)
 	}
 
 	return r
