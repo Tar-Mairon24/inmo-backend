@@ -1,11 +1,12 @@
 package usecase
 
 import (
+	"errors"
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/domain/ports"
 	"inmo-backend/middleware"
+
 	"github.com/sirupsen/logrus"
-	"errors"
 )
 
 type UserUseCase struct {
@@ -17,7 +18,7 @@ func NewUserUseCase(repo ports.UserRepository) *UserUseCase {
 }
 
 func (uc *UserUseCase) Login(email string, password string) error {
-	user, err := uc.repo.GetByEmail(email)
+	databasePassword, err := uc.repo.ConsultPassword(email)
 	if err != nil {
 		return err
 	}
@@ -27,21 +28,19 @@ func (uc *UserUseCase) Login(email string, password string) error {
 		return err
 	}
 
-	if err := middleware.VerifyPassword(hashedPassword, user.Password); err != nil {
+	if err := middleware.VerifyPassword(hashedPassword, databasePassword); err != nil {
 		logrus.WithError(err).Error("Password verification failed")
 		return err
 	}
 	logrus.Info("User login successful")
-	user.Password = ""
-	logrus.Debug("Returning user without password")
 	return nil
 }
 
-func (uc *UserUseCase) GetAllUsers() ([]models.User, error) {
+func (uc *UserUseCase) GetAllUsers() ([]models.UserResponse, error) {
 	return uc.repo.GetAll()
 }
 
-func (uc *UserUseCase) GetUserByID(id uint) (*models.User, error) {
+func (uc *UserUseCase) GetUserByID(id uint) (*models.UserResponse, error) {
 	return uc.repo.GetByID(id)
 }
 
@@ -50,6 +49,7 @@ func (uc *UserUseCase) CreateUser(user *models.User) error {
 	if err != nil {
 		return err
 	}
+	user.Password = hashedPassword 
 	if user.Username == "" {
 		return errors.New("username cannot be empty")
 	}
@@ -59,7 +59,7 @@ func (uc *UserUseCase) CreateUser(user *models.User) error {
 	if user.Password == "" {
 		return errors.New("password cannot be empty")
 	}
-	user.Password = hashedPassword 
+	
 
 	return uc.repo.Create(user)
 }

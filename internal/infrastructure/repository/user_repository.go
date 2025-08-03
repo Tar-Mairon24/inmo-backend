@@ -24,29 +24,53 @@ func NewUserRepository(db *sql.DB) ports.UserRepository {
 	}
 }
 
-func (r *UserRepositoryImpl) GetByEmail(email string) (*models.User, error) {
-    logrus.Info("Login method called in UserRepositoryImpl")
-
-    query := r.qb.Select("id", "username", "email", "password").
+func (r *UserRepositoryImpl) ConsultPassword(email string) (string, error) {
+    query := r.qb.Select("password").
         From("users").
         Where(squirrel.Eq{"email": email})
 
     sqlStr, args, err := query.ToSql()
     if err != nil {
         logrus.WithError(err).Error("Failed to build SQL query for login")
+        return "", err
+    }
+
+    var password string
+    err = r.db.QueryRow(sqlStr, args...).Scan(&password)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            logrus.Warn("No user found with the provided email")
+            return "", errors.New("user not found")
+        }
+        logrus.WithError(err).Error("Failed to execute query for login")
+        return "", err
+    }
+
+    return password, nil
+}
+
+
+func (r *UserRepositoryImpl) GetByEmail(email string) (*models.UserResponse, error) {
+    query := r.qb.Select("id", "username", "email", "password").
+        From("users").
+        Where(squirrel.Eq{"email": email})
+
+    sqlStr, args, err := query.ToSql()
+    if err != nil {
+        logrus.WithError(err).Error("Failed to build SQL query for consulting user by email")
         return nil, err
     }
 
-    var dbUser models.User
+    var dbUser models.UserResponse
     err = r.db.QueryRow(sqlStr, args...).Scan(
-        &dbUser.ID, &dbUser.Username, &dbUser.Email, &dbUser.Password,
+        &dbUser.ID, &dbUser.Username, &dbUser.Email,
     )
     if err != nil {
         if err == sql.ErrNoRows {
             logrus.Warn("No user found with the provided email")
             return nil,errors.New("user not found")
         }
-        logrus.WithError(err).Error("Failed to execute query for login")
+        logrus.WithError(err).Error("Failed to execute query for consulting user by email")
         return nil,err
     }
 
@@ -78,7 +102,7 @@ func (r *UserRepositoryImpl) Create(user *models.User) error {
     return nil
 }
 
-func (r *UserRepositoryImpl) GetAll() ([]models.User, error) {
+func (r *UserRepositoryImpl) GetAll() ([]models.UserResponse, error) {
 	logrus.Info("Retrieving all users from the database")
 	if r.db == nil {
 		logrus.Error("Database connection is nil")
@@ -101,9 +125,9 @@ func (r *UserRepositoryImpl) GetAll() ([]models.User, error) {
 	}
 	defer rows.Close()
 
-	var users []models.User
+	var users []models.UserResponse
 	for rows.Next() {
-		var user models.User
+		var user models.UserResponse
 		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.UpdatedAt); err != nil {
 			logrus.WithError(err).Error("Failed to scan user row")
 			return nil, err
@@ -118,8 +142,8 @@ func (r *UserRepositoryImpl) GetAll() ([]models.User, error) {
 	return users, nil
 }
 
-func (r *UserRepositoryImpl) GetByID(id uint) (*models.User, error) {
-    query := r.qb.Select("id", "username", "email", "password", "created_at", "updated_at").
+func (r *UserRepositoryImpl) GetByID(id uint) (*models.UserResponse, error) {
+    query := r.qb.Select("id", "username", "email", "created_at", "updated_at").
         From("users").
         Where(squirrel.Eq{"id": id})
 
@@ -128,10 +152,10 @@ func (r *UserRepositoryImpl) GetByID(id uint) (*models.User, error) {
         return nil, err
     }
 
-    var user models.User
+    var user models.UserResponse
     err = r.db.QueryRow(sqlStr, args...).Scan(
         &user.ID, &user.Username, &user.Email, 
-        &user.Password, &user.CreatedAt, &user.UpdatedAt,
+        &user.CreatedAt, &user.UpdatedAt,
     )
     if err != nil {
         if err == sql.ErrNoRows {
