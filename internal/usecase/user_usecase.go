@@ -23,12 +23,7 @@ func (uc *UserUseCase) Login(email string, password string) error {
 		return err
 	}
 
-	hashedPassword, err := middleware.HashPassword(password)
-	if err != nil {
-		return err
-	}
-
-	if err := middleware.VerifyPassword(hashedPassword, databasePassword); err != nil {
+	if err := middleware.VerifyPassword(databasePassword, password); err != nil {
 		logrus.WithError(err).Error("Password verification failed")
 		return err
 	}
