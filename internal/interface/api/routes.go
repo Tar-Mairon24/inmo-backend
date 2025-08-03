@@ -15,6 +15,7 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
 		users.POST("", userHandler.CreateUser)     // POST /api/v1/users
 		users.PUT("/:id", userHandler.UpdateUser)  // PUT /api/v1/users
 		users.DELETE("/:id", userHandler.DeleteUser) // DELETE /api/v1/users/:id
+		users.POST("/login", userHandler.UserLogin) // POST /api/v1/users/login
 	}
 }
 

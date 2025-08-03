@@ -24,6 +24,36 @@ func NewUserRepository(db *sql.DB) ports.UserRepository {
 	}
 }
 
+func (r *UserRepositoryImpl) GetByEmail(email string) (*models.User, error) {
+    logrus.Info("Login method called in UserRepositoryImpl")
+
+    query := r.qb.Select("id", "username", "email", "password").
+        From("users").
+        Where(squirrel.Eq{"email": email})
+
+    sqlStr, args, err := query.ToSql()
+    if err != nil {
+        logrus.WithError(err).Error("Failed to build SQL query for login")
+        return nil, err
+    }
+
+    var dbUser models.User
+    err = r.db.QueryRow(sqlStr, args...).Scan(
+        &dbUser.ID, &dbUser.Username, &dbUser.Email, &dbUser.Password,
+    )
+    if err != nil {
+        if err == sql.ErrNoRows {
+            logrus.Warn("No user found with the provided email")
+            return nil,errors.New("user not found")
+        }
+        logrus.WithError(err).Error("Failed to execute query for login")
+        return nil,err
+    }
+
+    logrus.Info("User found successfully in UserRepositoryImpl")
+    return &dbUser, nil
+}
+
 func (r *UserRepositoryImpl) Create(user *models.User) error {
     query := r.qb.Insert("users").
         Columns("username", "email", "password", "created_at", "updated_at").

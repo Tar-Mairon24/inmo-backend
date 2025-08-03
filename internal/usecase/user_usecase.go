@@ -3,6 +3,8 @@ package usecase
 import (
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/domain/ports"
+	"inmo-backend/middleware"
+	"github.com/sirupsen/logrus"
 )
 
 type UserUseCase struct {
@@ -11,6 +13,27 @@ type UserUseCase struct {
 
 func NewUserUseCase(repo ports.UserRepository) *UserUseCase {
 	return &UserUseCase{repo: repo}
+}
+
+func (uc *UserUseCase) Login(email string, password string) error {
+	user, err := uc.repo.GetByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	hashedPassword, err := middleware.HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	if err := middleware.VerifyPassword(hashedPassword, user.Password); err != nil {
+		logrus.WithError(err).Error("Password verification failed")
+		return err
+	}
+	logrus.Info("User login successful")
+	user.Password = ""
+	logrus.Debug("Returning user without password")
+	return nil
 }
 
 func (uc *UserUseCase) GetAllUsers() ([]models.User, error) {
