@@ -5,6 +5,7 @@ import (
 	"inmo-backend/internal/domain/ports"
 	"inmo-backend/middleware"
 	"github.com/sirupsen/logrus"
+	"errors"
 )
 
 type UserUseCase struct {
@@ -45,6 +46,21 @@ func (uc *UserUseCase) GetUserByID(id uint) (*models.User, error) {
 }
 
 func (uc *UserUseCase) CreateUser(user *models.User) error {
+	hashedPassword, err := middleware.HashPassword(user.Password)
+	if err != nil {
+		return err
+	}
+	if user.Username == "" {
+		return errors.New("username cannot be empty")
+	}
+	if user.Email == "" {
+		return errors.New("email cannot be empty")
+	}
+	if user.Password == "" {
+		return errors.New("password cannot be empty")
+	}
+	user.Password = hashedPassword 
+
 	return uc.repo.Create(user)
 }
 
