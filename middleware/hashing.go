@@ -19,10 +19,10 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func VerifyPassword(hashedPassword string, password string) (bool, error) {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+func VerifyPassword(hashedPassword string, databasePassword string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(databasePassword))
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
