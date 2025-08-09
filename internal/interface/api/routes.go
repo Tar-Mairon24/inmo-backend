@@ -22,8 +22,8 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
 func setupHealthRoutes(rg *gin.RouterGroup, healthHandler *handler.HealthHandler) {
 	health := rg.Group("/health")
 	{
-		health.GET("", healthHandler.RegisterHealthRoutes)						// GET api/v1/health
-		health.GET("/detailed", healthHandler.RegisterDetailedHealthRoute)		// GET api/v1/health/detailed
-		health.GET("/ping", healthHandler.RegisterPingRoute)					// GET api/v1/health/ping
+		health.Match([]string{"GET", "HEAD"}, "", healthHandler.RegisterHealthRoutes)						// GET api/v1/health
+		health.Match([]string{"GET", "HEAD"}, "/detailed", healthHandler.RegisterDetailedHealthRoute)		// GET api/v1/health/detailed
+		health.Match([]string{"GET", "HEAD"}, "/ping", healthHandler.RegisterPingRoute)					// GET api/v1/health/ping
 	}
 }
