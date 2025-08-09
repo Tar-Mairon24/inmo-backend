@@ -10,6 +10,19 @@ const (
 )
 
 func HashPassword(password string) (string, error) {
+	if(password == "") {
+		logrus.Error("Password cannot be empty")
+		return "", nil
+	}
+	if len(password) < 8 {
+		logrus.Error("Password must be at least 8 characters long")
+		return "", nil
+	}
+	if len(password) > 72 {
+		logrus.Error("Password must not exceed 72 characters")
+		return "", nil
+	}
+	
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), COST)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to hash password")
