@@ -41,6 +41,9 @@ func (uc *UserUseCase) GetUserByID(id uint) (*models.UserResponse, error) {
 }
 
 func (uc *UserUseCase) CreateUser(user *models.User) error {
+	if(user.Password == "") {
+		return errors.New("password cannot be empty")
+	}
 	hashedPassword, err := middleware.HashPassword(user.Password)
 	if err != nil {
 		return err

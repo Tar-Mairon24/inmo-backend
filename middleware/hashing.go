@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"errors"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -10,17 +12,13 @@ const (
 )
 
 func HashPassword(password string) (string, error) {
-	if(password == "") {
-		logrus.Error("Password cannot be empty")
-		return "", nil
-	}
 	if len(password) < 8 {
 		logrus.Error("Password must be at least 8 characters long")
-		return "", nil
+		return "", errors.New("password must be at least 8 characters long")
 	}
 	if len(password) > 72 {
 		logrus.Error("Password must not exceed 72 characters")
-		return "", nil
+		return "", errors.New("password must not exceed 72 characters")
 	}
 	
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), COST)

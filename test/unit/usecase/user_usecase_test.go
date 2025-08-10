@@ -1,11 +1,12 @@
 package usecase_test
 
 import (
+	"errors"
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"errors"
 
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/usecase"
@@ -51,10 +52,10 @@ func (m *MockUserRepository) GetByEmail(email string) (*models.UserResponse, err
 
 func TestUserUsecase_CreateUser(t *testing.T) {
 	type testCase struct {
-		name      string
-		user      *models.User
-		mockError error
-		wantError bool
+		name           string
+		user           *models.User
+		mockError      error
+		wantError      bool
 		shouldCallRepo bool
 	}
 
@@ -66,7 +67,7 @@ func TestUserUsecase_CreateUser(t *testing.T) {
 				Email:    "test@example.com",
 				Password: "testpassword",
 			},
-			wantError: false,
+			wantError:      false,
 			shouldCallRepo: true,
 		},
 		{
@@ -76,7 +77,7 @@ func TestUserUsecase_CreateUser(t *testing.T) {
 				Email:    "test@example.com",
 				Password: "testpassword",
 			},
-			wantError: true,
+			wantError:      true,
 			shouldCallRepo: false,
 		},
 		{
@@ -86,7 +87,7 @@ func TestUserUsecase_CreateUser(t *testing.T) {
 				Email:    "",
 				Password: "testpassword",
 			},
-			wantError: true,
+			wantError:      true,
 			shouldCallRepo: false,
 		},
 		{
@@ -96,7 +97,7 @@ func TestUserUsecase_CreateUser(t *testing.T) {
 				Email:    "test@example.com",
 				Password: "",
 			},
-			wantError: true,
+			wantError:      true,
 			shouldCallRepo: false,
 		},
 		{
@@ -106,8 +107,8 @@ func TestUserUsecase_CreateUser(t *testing.T) {
 				Email:    "test@example.com",
 				Password: "testpassword",
 			},
-			mockError: assert.AnError, // Simulate an error from the repository
-			wantError: true,
+			mockError:      assert.AnError, // Simulate an error from the repository
+			wantError:      true,
 			shouldCallRepo: true,
 		},
 	}
@@ -116,7 +117,7 @@ func TestUserUsecase_CreateUser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := new(MockUserRepository)
 			usecase := usecase.NewUserUseCase(mockRepo)
-			
+
 			if tc.shouldCallRepo {
 				mockRepo.On("Create", tc.user).Return(tc.mockError).Once()
 			}
@@ -133,51 +134,51 @@ func TestUserUsecase_CreateUser(t *testing.T) {
 	}
 }
 func TestUserUsecase_Login(t *testing.T) {
-    t.Run("successful login", func(t *testing.T) {
-        mockRepo := new(MockUserRepository)
-        uc := usecase.NewUserUseCase(mockRepo)
-        
-        email := "test@example.com"
-        password := "mypassword123"
-        
-        hash, err := middleware.HashPassword(password)
-        require.NoError(t, err)
-        
-        mockRepo.On("ConsultPassword", email).Return(hash, nil)
-        
-        err = uc.Login(email, password)
-        assert.NoError(t, err)
-    })
-    
-    t.Run("wrong password", func(t *testing.T) {
-        mockRepo := new(MockUserRepository)
-        uc := usecase.NewUserUseCase(mockRepo)
-        
-        email := "test@example.com"
-        correctPassword := "mypassword123"
-        wrongPassword := "wrongpassword"
-        
-        // Hash of correct password
-        hash, err := middleware.HashPassword(correctPassword)
-        require.NoError(t, err)
-        
-        mockRepo.On("ConsultPassword", email).Return(hash, nil)
-        
-        // Try to login with wrong password
-        err = uc.Login(email, wrongPassword)
-        assert.Error(t, err)
-    })
-    
-    t.Run("user not found", func(t *testing.T) {
-        mockRepo := new(MockUserRepository)
-        uc := usecase.NewUserUseCase(mockRepo)
-        
-        mockRepo.On("ConsultPassword", "notfound@test.com").Return("", errors.New("user not found"))
-        
-        err := uc.Login("notfound@test.com", "anypassword")
-        assert.Error(t, err)
-        assert.Contains(t, err.Error(), "user not found")
-    })
+	t.Run("successful login", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		uc := usecase.NewUserUseCase(mockRepo)
+
+		email := "test@example.com"
+		password := "mypassword123"
+
+		hash, err := middleware.HashPassword(password)
+		require.NoError(t, err)
+
+		mockRepo.On("ConsultPassword", email).Return(hash, nil)
+
+		err = uc.Login(email, password)
+		assert.NoError(t, err)
+	})
+
+	t.Run("wrong password", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		uc := usecase.NewUserUseCase(mockRepo)
+
+		email := "test@example.com"
+		correctPassword := "mypassword123"
+		wrongPassword := "wrongpassword"
+
+		// Hash of correct password
+		hash, err := middleware.HashPassword(correctPassword)
+		require.NoError(t, err)
+
+		mockRepo.On("ConsultPassword", email).Return(hash, nil)
+
+		// Try to login with wrong password
+		err = uc.Login(email, wrongPassword)
+		assert.Error(t, err)
+	})
+
+	t.Run("user not found", func(t *testing.T) {
+		mockRepo := new(MockUserRepository)
+		uc := usecase.NewUserUseCase(mockRepo)
+
+		mockRepo.On("ConsultPassword", "notfound@test.com").Return("", errors.New("user not found"))
+
+		err := uc.Login("notfound@test.com", "anypassword")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "user not found")
+	})
 
 	t.Run("hashing error", func(t *testing.T) {
 		mockRepo := new(MockUserRepository)
@@ -234,9 +235,9 @@ func TestUserUseCase_UpdateUser(t *testing.T) {
 	uc := usecase.NewUserUseCase(mockRepo)
 
 	userToUpdate := &models.User{
-		ID: 1,
+		ID:       1,
 		Username: "updatedUser",
-		Email: "update@update.com",
+		Email:    "update@update.com",
 		Password: "newpassword",
 	}
 	mockRepo.On("Update", userToUpdate).Return(nil)
@@ -267,5 +268,3 @@ func TestUserUseCase_DeleteUser_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "user not found")
 	mockRepo.AssertExpectations(t)
 }
-
-
