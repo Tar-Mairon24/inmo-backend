@@ -2,7 +2,7 @@ package ports
 
 import "inmo-backend/internal/domain/models"
 
-type UserUseCaseInterfaceImpl interface {
+type UserUseCase interface {
 	Login(email string, password string) error
 	GetAllUsers() ([]models.UserResponse, error)
 	GetUserByID(id uint) (*models.UserResponse, error)

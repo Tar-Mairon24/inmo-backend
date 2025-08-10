@@ -12,11 +12,11 @@ import (
 )
 
 type UserHandler struct {
-	userUsecase ports.UserUseCaseInterfaceImpl
+	userUsecase ports.UserUseCase
 }
 
 // NewUserHandler creates a new UserHandler instance
-func NewUserHandler(userUsecase ports.UserUseCaseInterfaceImpl) *UserHandler {
+func NewUserHandler(userUsecase ports.UserUseCase) *UserHandler {
 	return &UserHandler{
 		userUsecase: userUsecase,
 	}
@@ -161,6 +161,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	userID, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
 		logrus.WithError(err).Error("Invalid user ID format")
+		logrus.Info("🔍 DEBUG: Returning 400 (Bad Request)")  // ← Debug
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Invalid user ID",
 			"message": "User ID must be a valid number",
@@ -170,6 +171,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	if err := h.userUsecase.DeleteUser(uint(userID)); err != nil {
 		logrus.WithError(err).Error("Failed to delete user")
+		logrus.Info("🔍 DEBUG: Returning 500 (Internal Server Error)")  // ← Debug
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to delete user",
 			"message": err.Error(),
@@ -177,7 +179,8 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	logrus.Info("🔍 DEBUG: Returning 204 (No Content)")
+	c.JSON(http.StatusNoContent, nil)
 }
 
 
