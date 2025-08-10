@@ -33,7 +33,7 @@ func (m *MockUserUseCase) GetAllUsers() ([]models.UserResponse, error) {
 	return args.Get(0).([]models.UserResponse), args.Error(1)
 }
 func (m *MockUserUseCase) GetUserByID(id uint) (*models.UserResponse, error) { 
-	args:= m.Called(id)
+	args := m.Called(id)
 	if user, ok := args.Get(0).(*models.UserResponse); ok {
 		return user, args.Error(1)
 	}

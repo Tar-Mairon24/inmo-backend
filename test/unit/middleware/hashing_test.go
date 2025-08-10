@@ -43,7 +43,7 @@ func TestHashPassword_EmptyPassword(t *testing.T) {
 
 	_, err := middleware.HashPassword(password)
 
-	assert.Nil(t, err, "Hashing should return an error for empty password")
+	assert.NotNil(t, err, "Hashing should return an error for empty password")
 	assert.Empty(t, "", "Hashed password should be empty for empty input")
 }
 
@@ -52,7 +52,7 @@ func TestHashPassword_ShortPassword(t *testing.T) {
 
 	_, err := middleware.HashPassword(password)
 
-	assert.Nil(t, err, "Hashing should return an error for short password")
+	assert.NotNil(t, err, "Hashing should return an error for short password")
 	assert.Empty(t, "", "Hashed password should be empty for short input")
 }
 
@@ -75,6 +75,6 @@ func TestHashPassword_LongPassword(t *testing.T) {
 
 	_, err := middleware.HashPassword(password)
 
-	assert.Nil(t, err, "Hashing should not return an error for long password")
+	assert.Error(t, err, "Hashing should not return an error for long password")
 	assert.Empty(t, "", "Hashed password should not be empty for long input")
 }

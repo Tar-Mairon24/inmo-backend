@@ -2,11 +2,12 @@ package usecase
 
 import (
 	"errors"
+
+	"github.com/sirupsen/logrus"
+
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/domain/ports"
 	"inmo-backend/middleware"
-
-	"github.com/sirupsen/logrus"
 )
 
 type UserUseCase struct {
@@ -44,17 +45,13 @@ func (uc *UserUseCase) CreateUser(user *models.User) error {
 	if err != nil {
 		return err
 	}
-	user.Password = hashedPassword 
+	user.Password = hashedPassword
 	if user.Username == "" {
 		return errors.New("username cannot be empty")
 	}
 	if user.Email == "" {
 		return errors.New("email cannot be empty")
 	}
-	if user.Password == "" {
-		return errors.New("password cannot be empty")
-	}
-	
 
 	return uc.repo.Create(user)
 }
@@ -65,4 +62,4 @@ func (uc *UserUseCase) UpdateUser(user *models.User) error {
 
 func (uc *UserUseCase) DeleteUser(id uint) error {
 	return uc.repo.Delete(id)
-}	
+}
