@@ -12,19 +12,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type UserRepositoryImpl struct{
-	db *sql.DB
-	qb squirrel.StatementBuilderType
+type UserRepository struct{
+    db *sql.DB
+    qb squirrel.StatementBuilderType
 }
 
 func NewUserRepository(db *sql.DB) ports.UserRepository {
-	return &UserRepositoryImpl{
+	return &UserRepository{
 		db: db,
 		qb: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question),
 	}
 }
 
-func (r *UserRepositoryImpl) ConsultPassword(email string) (string, error) {
+func (r *UserRepository) ConsultPassword(email string) (string, error) {
     query := r.qb.Select("password").
         From("users").
         Where(squirrel.Eq{"email": email})
@@ -50,7 +50,7 @@ func (r *UserRepositoryImpl) ConsultPassword(email string) (string, error) {
 }
 
 
-func (r *UserRepositoryImpl) GetByEmail(email string) (*models.UserResponse, error) {
+func (r *UserRepository) GetByEmail(email string) (*models.UserResponse, error) {
     query := r.qb.Select("id", "username", "email", "password").
         From("users").
         Where(squirrel.Eq{"email": email})
@@ -78,7 +78,7 @@ func (r *UserRepositoryImpl) GetByEmail(email string) (*models.UserResponse, err
     return &dbUser, nil
 }
 
-func (r *UserRepositoryImpl) Create(user *models.User) error {
+func (r *UserRepository) Create(user *models.User) error {
     query := r.qb.Insert("users").
         Columns("username", "email", "password", "created_at", "updated_at").
         Values(user.Username, user.Email, user.Password, time.Now(), time.Now())
@@ -102,7 +102,7 @@ func (r *UserRepositoryImpl) Create(user *models.User) error {
     return nil
 }
 
-func (r *UserRepositoryImpl) GetAll() ([]models.UserResponse, error) {
+func (r *UserRepository) GetAll() ([]models.UserResponse, error) {
 	logrus.Info("Retrieving all users from the database")
 	if r.db == nil {
 		logrus.Error("Database connection is nil")
@@ -142,7 +142,7 @@ func (r *UserRepositoryImpl) GetAll() ([]models.UserResponse, error) {
 	return users, nil
 }
 
-func (r *UserRepositoryImpl) GetByID(id uint) (*models.UserResponse, error) {
+func (r *UserRepository) GetByID(id uint) (*models.UserResponse, error) {
     query := r.qb.Select("id", "username", "email", "created_at", "updated_at").
         From("users").
         Where(squirrel.Eq{"id": id})
@@ -168,7 +168,7 @@ func (r *UserRepositoryImpl) GetByID(id uint) (*models.UserResponse, error) {
     return &user, nil
 }
 
-func (r *UserRepositoryImpl) Update(user *models.User) error {
+func (r *UserRepository) Update(user *models.User) error {
     query := r.qb.Update("users").
         Set("username", user.Username).
         Set("email", user.Email).
@@ -197,7 +197,7 @@ func (r *UserRepositoryImpl) Update(user *models.User) error {
     return nil
 }
 
-func (r *UserRepositoryImpl) Delete(id uint) error {
+func (r *UserRepository) Delete(id uint) error {
     query := r.qb.Delete("users").
 		Where(squirrel.Eq{"id": id})
 
