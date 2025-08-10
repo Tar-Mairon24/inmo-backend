@@ -161,7 +161,7 @@ func TestGetUserByID_Success(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{{Key: "id", Value: "1"}}
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	c.Request, _ = http.NewRequest("GET", "/api/v1/users/1", nil)
 
 	handler.GetUserByID(c)
@@ -179,7 +179,7 @@ func TestGetUserByID_InvalidID(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{{Key: "id", Value: "abc"}}
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
 	c.Request, _ = http.NewRequest("GET", "/api/v1/users/abc", nil)
 
 	handler.GetUserByID(c)
@@ -198,7 +198,7 @@ func TestGetUserByID_NotFound(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{{Key: "id", Value: "99"}}
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "99"}}
 	c.Request, _ = http.NewRequest("GET", "/api/v1/users/99", nil)
 
 	handler.GetUserByID(c)
@@ -355,17 +355,10 @@ func TestDeleteUser_Success(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{{Key: "id", Value: "1"}}
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	c.Request, _ = http.NewRequest("DELETE", "/api/v1/users/1", nil)
 
 	handler.DeleteUser(c)
-
-	t.Logf("Actual Status Code: %d", w.Code)
-    t.Logf("Response Body: '%s'", w.Body.String())
-    t.Logf("Response Headers: %v", w.Header())
-	t.Logf("🔍 Mock calls: %v", mockUsecase.Calls)  // Debug mock calls
-    t.Logf("🔍 Actual Status Code: %d", w.Code)
-    t.Logf("🔍 Response Body: '%s'", w.Body.String())
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
 	assert.Empty(t, w.Body.String())
@@ -379,7 +372,7 @@ func TestDeleteUser_InvalidID(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{{Key: "id", Value: "abc"}}
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
 	c.Request, _ = http.NewRequest("DELETE", "/api/v1/users/abc", nil)
 
 	handler.DeleteUser(c)
@@ -398,7 +391,7 @@ func TestDeleteUser_DeleteFails(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{{Key: "id", Value: "2"}}
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "2"}}
 	c.Request, _ = http.NewRequest("DELETE", "/api/v1/users/2", nil)
 
 	handler.DeleteUser(c)
