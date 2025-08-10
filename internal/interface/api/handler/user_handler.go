@@ -7,16 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
-	"inmo-backend/internal/usecase"
 	"inmo-backend/internal/domain/models"
+	"inmo-backend/internal/domain/ports"
 )
 
 type UserHandler struct {
-	userUsecase *usecase.UserUseCase
+	userUsecase ports.UserUseCaseInterfaceImpl
 }
 
 // NewUserHandler creates a new UserHandler instance
-func NewUserHandler(userUsecase *usecase.UserUseCase) *UserHandler {
+func NewUserHandler(userUsecase ports.UserUseCaseInterfaceImpl) *UserHandler {
 	return &UserHandler{
 		userUsecase: userUsecase,
 	}
