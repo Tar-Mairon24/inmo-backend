@@ -84,20 +84,24 @@ func (r *UserRepository) Create(user *models.User) error {
 
 	sql, args, err := query.ToSql()
 	if err != nil {
+        logrus.WithError(err).Error("Failed to build SQL query to create user")
 		return err
 	}
 
 	result, err := r.db.Exec(sql, args...)
 	if err != nil {
+        logrus.WithError(err).Error("Failed to execute query to create user")
 		return err
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
+        logrus.WithError(err).Error("Failed to retrieve last insert ID")
 		return err
 	}
 
 	user.ID = uint(id)
+    logrus.Infof("User created successfully with ID: %d", user.ID)
 	return nil
 }
 
