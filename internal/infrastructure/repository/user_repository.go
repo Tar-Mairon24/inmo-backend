@@ -122,7 +122,11 @@ func (r *UserRepository) GetAll() ([]models.UserResponse, error) {
 		logrus.WithError(err).Error("Failed to execute query to get all users")
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+        if err := rows.Close(); err != nil {
+            logrus.WithError(err).Error("Failed to close database rows")
+        }
+    }()
 
 	var users []models.UserResponse
 	for rows.Next() {

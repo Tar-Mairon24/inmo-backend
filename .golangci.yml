@@ -1,0 +1,25 @@
+version: "2"
+
+linters:
+  enable:
+    # Essential linters (must-have)
+    - govet          # Go vet examiner
+    - errcheck       # Check for unchecked errors
+    - staticcheck    # Advanced static analysis
+    - unused         # Find unused code
+    - ineffassign    # Detect ineffectual assignments
+    
+    # Performance & best practices
+    - gocritic       # Comprehensive Go source code linter
+    - prealloc       # Find slice declarations with non-zero initial length
+    - unconvert      # Remove unnecessary type conversions
+    
+    # Maintainability
+    - gocyclo        # Cyclomatic complexity
+    - dupl           # Code clone detection
+    - goconst        # Find repeated strings that could be constants
+
+
+run:
+  tests: false 
+  timeout: 5m
