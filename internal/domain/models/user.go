@@ -9,6 +9,7 @@ type User struct {
 	Password 	string     `gorm:"not null" json:"password"`
 	CreatedAt 	time.Time  `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt 	time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt   *time.Time  `gorm:"index" json:"-"`
 }
 
 type UserLoginData struct {
