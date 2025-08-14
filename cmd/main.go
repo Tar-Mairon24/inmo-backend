@@ -31,8 +31,9 @@ func main() {
 		logrus.Warn("SERVER_TIMEZONE not set, defaulting to UTC")
 	}
 	loc, err := time.LoadLocation(timezone)
+	logrus.Infof("Setting server timezone to %s", timezone)
 	if err != nil {
-		logrus.WithError(err).Warn("Failed to load timezone, defaulting to UTC")
+		logrus.WithError(err).Warnf("Failed to load timezone %s, defaulting to UTC", timezone)
 		loc = time.UTC
 	}
 	time.Local = loc
