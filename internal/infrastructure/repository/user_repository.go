@@ -27,7 +27,7 @@ func NewUserRepository(db *sql.DB) ports.UserRepository {
 func (r *UserRepository) ConsultPassword(email string) (string, error) {
 	query := r.qb.Select("password").
 		From("users").
-		Where(squirrel.Eq{"email": email})
+		Where(squirrel.Eq{"email": email, "deleted_at": nil})
 
 	sqlStr, args, err := query.ToSql()
 	if err != nil {
@@ -52,7 +52,7 @@ func (r *UserRepository) ConsultPassword(email string) (string, error) {
 func (r *UserRepository) GetByEmail(email string) (*models.UserResponse, error) {
 	query := r.qb.Select("id", "username", "email", "password").
 		From("users").
-		Where(squirrel.Eq{"email": email})
+		Where(squirrel.Eq{"email": email, "deleted_at": nil})
 
 	sqlStr, args, err := query.ToSql()
 	if err != nil {
@@ -113,6 +113,7 @@ func (r *UserRepository) GetAll() ([]models.UserResponse, error) {
 	}
 	query := r.qb.Select("id", "username", "email", "created_at", "updated_at").
 		From("users").
+		Where(squirrel.Eq{"deleted_at": nil}).
 		OrderBy("created_at DESC")
 
 	sql, args, err := query.ToSql()
@@ -152,7 +153,7 @@ func (r *UserRepository) GetAll() ([]models.UserResponse, error) {
 func (r *UserRepository) GetByID(id uint) (*models.UserResponse, error) {
 	query := r.qb.Select("id", "username", "email", "created_at", "updated_at").
 		From("users").
-		Where(squirrel.Eq{"id": id})
+		Where(squirrel.Eq{"id": id, "deleted_at": nil})
 
 	sqlStr, args, err := query.ToSql()
 	if err != nil {
@@ -179,7 +180,7 @@ func (r *UserRepository) Update(user *models.User) error {
 		Set("username", user.Username).
 		Set("email", user.Email).
 		Set("updated_at", time.Now()).
-		Where(squirrel.Eq{"id": user.ID})
+		Where(squirrel.Eq{"id": user.ID, "deleted_at": nil})
 
 	sql, args, err := query.ToSql()
 	if err != nil {
@@ -204,8 +205,9 @@ func (r *UserRepository) Update(user *models.User) error {
 }
 
 func (r *UserRepository) Delete(id uint) error {
-	query := r.qb.Delete("users").
-		Where(squirrel.Eq{"id": id})
+	query := r.qb.Update("users").
+		Set("deleted_at", time.Now()).
+		Where(squirrel.Eq{"id": id, "deleted_at": nil})
 
 	sql, args, err := query.ToSql()
 	if err != nil {
