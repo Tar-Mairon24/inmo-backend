@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
@@ -16,13 +17,20 @@ func main() {
 	}
 
 	logrus.SetFormatter(&logrus.TextFormatter{
-		ForceColors: true,
-		FullTimestamp: true,
-		TimestampFormat: "2006-01-02 15:04:05",
+		ForceColors:            true,
+		FullTimestamp:          true,
+		TimestampFormat:        "2006-01-02 15:04:05",
 		DisableLevelTruncation: true,
 	})
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetOutput(os.Stdout)
+
+	loc, err := time.LoadLocation("SERVER_TIMEZONE")
+	if err != nil {
+		logrus.WithError(err).Warn("Failed to load timezone, defaulting to UTC")
+		loc = time.UTC
+	}
+	time.Local = loc
 
 	container := di.NewContainer()
 
