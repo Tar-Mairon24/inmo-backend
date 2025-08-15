@@ -18,6 +18,17 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
 	}
 }
 
+func setupPropertyRoutes(rg *gin.RouterGroup, propertyHandler *handler.PropertyHandler) {
+	properties := rg.Group("/properties")
+	{
+		properties.GET("", propertyHandler.GetProperties)          // GET /api/v1/properties
+		properties.GET("/:id", propertyHandler.GetPropertyByID)    // GET /api/v1/properties/:id
+		properties.POST("", propertyHandler.CreateProperty)        // POST /api/v1/properties
+		properties.PUT("/:id", propertyHandler.UpdateProperty)     // PUT /api/v1/properties/:id
+		properties.DELETE("/:id", propertyHandler.DeleteProperty)  // DELETE /api/v1/properties/:id
+	}
+}
+
 func setupHealthRoutes(rg *gin.RouterGroup, healthHandler *handler.HealthHandler) {
 	health := rg.Group("/health")
 	{
