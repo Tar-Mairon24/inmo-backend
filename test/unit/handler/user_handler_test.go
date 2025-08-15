@@ -32,20 +32,26 @@ func (m *MockUserUseCase) GetAllUsers() ([]models.UserResponse, error) {
 	}
 	return args.Get(0).([]models.UserResponse), args.Error(1)
 }
-func (m *MockUserUseCase) GetUserByID(id uint) (*models.UserResponse, error) { 
+func (m *MockUserUseCase) GetUserByID(id uint) (*models.UserResponse, error) {
 	args := m.Called(id)
 	if user, ok := args.Get(0).(*models.UserResponse); ok {
 		return user, args.Error(1)
 	}
 	return nil, args.Error(1)
 }
-func (m *MockUserUseCase) CreateUser(user *models.User) error {
+func (m *MockUserUseCase) CreateUser(user *models.User) (*models.UserResponse, error) {
 	args := m.Called(user)
-	return args.Error(0)
+	if userResp, ok := args.Get(0).(*models.UserResponse); ok {
+		return userResp, args.Error(1)
+	}
+	return nil, args.Error(1)
 }
-func (m *MockUserUseCase) UpdateUser(user *models.User) error {
+func (m *MockUserUseCase) UpdateUser(user *models.User) (*models.UserResponse, error) {
 	args := m.Called(user)
-	return args.Error(0)
+	if userResp, ok := args.Get(0).(*models.UserResponse); ok {
+		return userResp, args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 func (m *MockUserUseCase) DeleteUser(id uint) error {
 	args := m.Called(id)
@@ -219,7 +225,9 @@ func TestCreateUser_Success(t *testing.T) {
 	}
 	userJSON := `{"email":"newuser@example.com","password":"securepassword"}`
 
-	mockUsecase.On("CreateUser", mock.AnythingOfType("*models.User")).Return(nil).Run(func(args mock.Arguments) {
+	userResponse := &models.UserResponse{ID: 1, Email: "newuser@example.com", Username: "newuser"}
+
+	mockUsecase.On("CreateUser", mock.AnythingOfType("*models.User")).Return(userResponse, nil).Run(func(args mock.Arguments) {
 		argUser := args.Get(0).(*models.User)
 		assert.Equal(t, user.Email, argUser.Email)
 		assert.Equal(t, user.Password, argUser.Password)
@@ -262,7 +270,9 @@ func TestCreateUser_CreateUserFails(t *testing.T) {
 	handler := handler.NewUserHandler(mockUsecase)
 
 	userJSON := `{"email":"failuser@example.com","password":"failpass"}`
-	mockUsecase.On("CreateUser", mock.AnythingOfType("*models.User")).Return(errors.New("db error"))
+
+	userResponse := &models.UserResponse{ID: 1, Email: "failuser@example.com", Username: "failuser"}
+	mockUsecase.On("CreateUser", mock.AnythingOfType("*models.User")).Return(userResponse, errors.New("db error"))
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -288,7 +298,9 @@ func TestUpdateUser_Success(t *testing.T) {
 	}
 	userJSON := `{"id":1,"email":"updateuser@example.com","password":"newpassword"}`
 
-	mockUsecase.On("UpdateUser", mock.AnythingOfType("*models.User")).Return(nil).Run(func(args mock.Arguments) {
+	userResponse := &models.UserResponse{ID: user.ID, Email: user.Email, Username: "updateuser"}
+
+	mockUsecase.On("UpdateUser", mock.AnythingOfType("*models.User")).Return(userResponse, nil).Run(func(args mock.Arguments) {
 		argUser := args.Get(0).(*models.User)
 		assert.Equal(t, user.ID, argUser.ID)
 		assert.Equal(t, user.Email, argUser.Email)
@@ -332,7 +344,9 @@ func TestUpdateUser_UpdateFails(t *testing.T) {
 	handler := handler.NewUserHandler(mockUsecase)
 
 	userJSON := `{"id":2,"email":"failupdate@example.com","password":"failpass"}`
-	mockUsecase.On("UpdateUser", mock.AnythingOfType("*models.User")).Return(errors.New("update error"))
+
+	userResponse := &models.UserResponse{ID: 2, Email: "failupdate@example.com", Username: "failupdate"}
+	mockUsecase.On("UpdateUser", mock.AnythingOfType("*models.User")).Return(userResponse, errors.New("update error"))
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -401,7 +415,3 @@ func TestDeleteUser_DeleteFails(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "delete error")
 	mockUsecase.AssertExpectations(t)
 }
-
-
-
-

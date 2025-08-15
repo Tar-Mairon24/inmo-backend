@@ -112,7 +112,8 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.userUsecase.CreateUser(&user); err != nil {
+	userResponse, err := h.userUsecase.CreateUser(&user)
+	if err != nil {
 		logrus.WithError(err).Error("Failed to create user")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to create user",
@@ -122,7 +123,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"data":    user,
+		"data":    userResponse,
 		"message": "User created successfully",
 	})
 }
@@ -138,7 +139,8 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.userUsecase.UpdateUser(&user); err != nil {
+	UserResponse, err := h.userUsecase.UpdateUser(&user)
+	if err != nil {
 		logrus.WithError(err).Error("Failed to update user")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to update user",
@@ -148,7 +150,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data":    user,
+		"data":    UserResponse,
 		"message": "User updated successfully",
 	})
 }
