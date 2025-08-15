@@ -75,7 +75,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.UserResponse, error) 
 		return nil, err
 	}
 
-	logrus.Info("User found successfully with email: %s", email)
+	logrus.Infof("User found successfully with email: %s", email)
 	return &User, nil
 }
 
