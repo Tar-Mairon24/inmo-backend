@@ -7,7 +7,7 @@ type UserRepository interface {
 	GetByID(id uint) (*models.UserResponse, error)
 	GetByEmail(email string) (*models.UserResponse, error)
 	ConsultPassword(email string) (string, error)
-	Create(user *models.User) error
-	Update(user *models.User) error
+	Create(user *models.User) (*models.UserResponse, error)
+	Update(user *models.User) (*models.UserResponse, error)
 	Delete(id uint) error
 }

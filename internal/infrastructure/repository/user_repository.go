@@ -27,7 +27,8 @@ func NewUserRepository(db *sql.DB) ports.UserRepository {
 func (r *UserRepository) ConsultPassword(email string) (string, error) {
 	query := r.qb.Select("password").
 		From("users").
-		Where(squirrel.Eq{"email": email}).Where(squirrel.Expr("deleted_at IS NULL")) // Ensure deleted_at is NULL
+		Where(squirrel.Eq{"email": email}).
+		Where(squirrel.Expr("deleted_at IS NULL")) // Ensure deleted_at is NULL
 
 	sqlStr, args, err := query.ToSql()
 	if err != nil {
@@ -50,9 +51,10 @@ func (r *UserRepository) ConsultPassword(email string) (string, error) {
 }
 
 func (r *UserRepository) GetByEmail(email string) (*models.UserResponse, error) {
-	query := r.qb.Select("id", "username", "email", "password").
+	query := r.qb.Select("id", "username", "email", "created_at, updated_at").
 		From("users").
-		Where(squirrel.Eq{"email": email}).Where(squirrel.Expr("deleted_at IS NULL")) // Ensure deleted_at is NULL
+		Where(squirrel.Eq{"email": email}).
+		Where(squirrel.Expr("deleted_at IS NULL")) // Ensure deleted_at is NULL
 
 	sqlStr, args, err := query.ToSql()
 	if err != nil {
@@ -60,9 +62,9 @@ func (r *UserRepository) GetByEmail(email string) (*models.UserResponse, error) 
 		return nil, err
 	}
 
-	var dbUser models.UserResponse
+	var User models.UserResponse
 	err = r.db.QueryRow(sqlStr, args...).Scan(
-		&dbUser.ID, &dbUser.Username, &dbUser.Email,
+		&User.ID, &User.Username, &User.Email, &User.CreatedAt, &User.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -73,11 +75,11 @@ func (r *UserRepository) GetByEmail(email string) (*models.UserResponse, error) 
 		return nil, err
 	}
 
-	logrus.Info("User found successfully in UserRepositoryImpl")
-	return &dbUser, nil
+	logrus.Info("User found successfully with email: %s", email)
+	return &User, nil
 }
 
-func (r *UserRepository) Create(user *models.User) error {
+func (r *UserRepository) Create(user *models.User) (*models.UserResponse, error) {
 	query := r.qb.Insert("users").
 		Columns("username", "email", "password", "created_at", "updated_at").
 		Values(user.Username, user.Email, user.Password, time.Now(), time.Now())
@@ -85,24 +87,25 @@ func (r *UserRepository) Create(user *models.User) error {
 	sql, args, err := query.ToSql()
 	if err != nil {
         logrus.WithError(err).Error("Failed to build SQL query to create user")
-		return err
+		return nil, err
 	}
 
 	result, err := r.db.Exec(sql, args...)
 	if err != nil {
         logrus.WithError(err).Error("Failed to execute query to create user")
-		return err
+		return nil, err
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
         logrus.WithError(err).Error("Failed to retrieve last insert ID")
-		return err
+		return nil, err
 	}
 
 	user.ID = uint(id)
     logrus.Infof("User created successfully with ID: %d", user.ID)
-	return nil
+
+	return models.NewUserResponse(user), nil
 }
 
 func (r *UserRepository) GetAll() ([]models.UserResponse, error) {
@@ -160,6 +163,7 @@ func (r *UserRepository) GetByID(id uint) (*models.UserResponse, error) {
 
 	sqlStr, args, err := query.ToSql()
 	if err != nil {
+		logrus.WithError(err).Error("Failed to build SQL query for getting user by ID")
 		return nil, err
 	}
 
@@ -170,66 +174,78 @@ func (r *UserRepository) GetByID(id uint) (*models.UserResponse, error) {
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			logrus.Warnf("No user found with ID: %d", id)
 			return nil, errors.New("user not found")
 		}
+		logrus.WithError(err).Error("Failed to execute query for getting user by ID")
 		return nil, err
 	}
 
+	logrus.Infof("User found successfully with ID: %d", id)
 	return &user, nil
 }
 
-func (r *UserRepository) Update(user *models.User) error {
+func (r *UserRepository) Update(user *models.User) (*models.UserResponse, error) {
 	query := r.qb.Update("users").
 		Set("username", user.Username).
 		Set("email", user.Email).
 		Set("updated_at", time.Now()).
-		Where(squirrel.Eq{"id": user.ID}).Where(squirrel.Expr("deleted_at IS NULL"))
+		Where(squirrel.Eq{"id": user.ID}).
+		Where(squirrel.Expr("deleted_at IS NULL"))
 
 	sql, args, err := query.ToSql()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	result, err := r.db.Exec(sql, args...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if rowsAffected == 0 {
-		return errors.New("user not found")
+		return nil, errors.New("user not found")
 	}
 
-	return nil
+	return models.NewUserResponse(user), nil
 }
 
 func (r *UserRepository) Delete(id uint) error {
 	query := r.qb.Update("users").
 		Set("deleted_at", time.Now()).
-		Where(squirrel.Eq{"id": id}).Where(squirrel.Expr("deleted_at IS NULL"))
+		Where(squirrel.Eq{"id": id}).
+		Where(squirrel.Expr("deleted_at IS NULL"))
 
 	sql, args, err := query.ToSql()
 	if err != nil {
+		logrus.WithError(err).Error("Failed to build SQL query for deleting user")
 		return err
 	}
 
 	result, err := r.db.Exec(sql, args...)
 	if err != nil {
+		logrus.WithError(err).Error("Failed to execute query for deleting user")
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		logrus.WithError(err).Error("Failed to retrieve rows affected for deleting user")
 		return err
 	}
 
 	if rowsAffected == 0 {
+		logrus.Warnf("No user found with ID: %d or already deleted", id)
 		return errors.New("user not found or already deleted")
 	}
 
+	logrus.Infof("User with ID: %d deleted successfully", id)
 	return nil
 }
+
+

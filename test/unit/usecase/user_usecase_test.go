@@ -17,9 +17,12 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
-func (m *MockUserRepository) Create(user *models.User) error {
+func (m *MockUserRepository) Create(user *models.User) (*models.UserResponse, error) {
 	args := m.Called(user)
-	return args.Error(0)
+	if userResponse, ok := args.Get(0).(*models.UserResponse); ok {
+		return userResponse, args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 func (m *MockUserRepository) GetByID(id uint) (*models.UserResponse, error) {
 	args := m.Called(id)
@@ -36,9 +39,12 @@ func (m *MockUserRepository) GetAll() ([]models.UserResponse, error) {
 	args := m.Called()
 	return args.Get(0).([]models.UserResponse), args.Error(1)
 }
-func (m *MockUserRepository) Update(user *models.User) error {
+func (m *MockUserRepository) Update(user *models.User) (*models.UserResponse, error) {
 	args := m.Called(user)
-	return args.Error(0)
+	if userResponse, ok := args.Get(0).(*models.UserResponse); ok {
+		return userResponse, args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 func (m *MockUserRepository) Delete(userID uint) error {
 	args := m.Called(userID)
@@ -117,12 +123,17 @@ func TestUserUsecase_CreateUser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := new(MockUserRepository)
 			usecase := usecase.NewUserUseCase(mockRepo)
-
-			if tc.shouldCallRepo {
-				mockRepo.On("Create", tc.user).Return(tc.mockError).Once()
+			userResponse := &models.UserResponse{
+				ID:        1,
+				Username:  tc.user.Username,
+				Email:     tc.user.Email,
 			}
 
-			err := usecase.CreateUser(tc.user)
+			if tc.shouldCallRepo {
+				mockRepo.On("Create", tc.user).Return(userResponse, tc.mockError).Once()
+			}
+
+			_, err := usecase.CreateUser(tc.user)
 
 			if tc.wantError {
 				assert.Error(t, err, "Expected error for case: %s", tc.name)
@@ -240,8 +251,15 @@ func TestUserUseCase_UpdateUser(t *testing.T) {
 		Email:    "update@update.com",
 		Password: "newpassword",
 	}
-	mockRepo.On("Update", userToUpdate).Return(nil)
-	err := uc.UpdateUser(userToUpdate)
+
+	userResponse := &models.UserResponse{
+		ID: 	 userToUpdate.ID,
+		Username: userToUpdate.Username,
+		Email:    userToUpdate.Email,
+	}
+
+	mockRepo.On("Update", userToUpdate).Return(userResponse, nil)
+	_, err := uc.UpdateUser(userToUpdate)
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }

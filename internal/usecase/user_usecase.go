@@ -40,26 +40,30 @@ func (uc *UserUseCase) GetUserByID(id uint) (*models.UserResponse, error) {
 	return uc.repo.GetByID(id)
 }
 
-func (uc *UserUseCase) CreateUser(user *models.User) error {
+func (uc *UserUseCase) CreateUser(user *models.User) (*models.UserResponse, error) {
 	if(user.Password == "") {
-		return errors.New("password cannot be empty")
+		logrus.Error("Password cannot be empty")
+		return nil, errors.New("password cannot be empty")
 	}
 	hashedPassword, err := middleware.HashPassword(user.Password)
 	if err != nil {
-		return err
+		logrus.WithError(err).Error("Failed to hash password")
+		return nil, err
 	}
 	user.Password = hashedPassword
 	if user.Username == "" {
-		return errors.New("username cannot be empty")
+		logrus.Error("Username cannot be empty")
+		return nil, errors.New("username cannot be empty")
 	}
 	if user.Email == "" {
-		return errors.New("email cannot be empty")
+		logrus.Error("Email cannot be empty")
+		return nil, errors.New("email cannot be empty")
 	}
 
 	return uc.repo.Create(user)
 }
 
-func (uc *UserUseCase) UpdateUser(user *models.User) error {
+func (uc *UserUseCase) UpdateUser(user *models.User) (*models.UserResponse, error) {
 	return uc.repo.Update(user)
 }
 
