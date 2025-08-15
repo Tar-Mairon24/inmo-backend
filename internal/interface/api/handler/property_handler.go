@@ -26,7 +26,6 @@ func (h *PropertyHandler) GetProperties(c *gin.Context) {
 
 	properties, err := h.propertyUsecase.GetAllProperties()
 	if err != nil {
-		logrus.WithError(err).Error("Failed to get properties")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to retrieve properties",
 			"message": err.Error(),
@@ -35,7 +34,6 @@ func (h *PropertyHandler) GetProperties(c *gin.Context) {
 	}
 
 	if len(properties) == 0 {
-		logrus.Warn("No properties found")
 		c.JSON(http.StatusNotFound, gin.H{
 			"error":   "No properties found",
 			"message": "No properties available in the database",
@@ -43,6 +41,7 @@ func (h *PropertyHandler) GetProperties(c *gin.Context) {
 		return
 	}
 
+	logrus.Infof("Retrieved %d properties", len(properties))
 	c.JSON(http.StatusOK, properties)
 }
 
@@ -62,7 +61,6 @@ func (h *PropertyHandler) GetPropertyByID(c *gin.Context) {
 
 	property, err := h.propertyUsecase.GetPropertyByID(uint(id))
 	if err != nil {
-		logrus.WithError(err).Error("Failed to get property by ID")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to retrieve property",
 			"message": err.Error(),
@@ -78,6 +76,7 @@ func (h *PropertyHandler) GetPropertyByID(c *gin.Context) {
 		return
 	}
 
+	logrus.Infof("Retrieved property with ID: %d", id)
 	c.JSON(http.StatusOK, property)
 }
 
@@ -96,7 +95,6 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 
 	newProperty, err := h.propertyUsecase.CreateProperty(&property)
 	if err != nil {
-		logrus.WithError(err).Error("Failed to create property")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to create property",
 			"message": err.Error(),
@@ -104,6 +102,7 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 		return
 	}
 
+	logrus.Infof("Property created successfully with ID: %d", newProperty.ID)
 	c.JSON(http.StatusCreated, newProperty)
 }
 
@@ -122,7 +121,6 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 
 	updatedProperty, err := h.propertyUsecase.UpdateProperty(&property)
 	if err != nil {
-		logrus.WithError(err).Error("Failed to update property")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to update property",
 			"message": err.Error(),
@@ -130,6 +128,7 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 		return
 	}
 
+	logrus.Infof("Property updated successfully with ID: %d", updatedProperty.ID)
 	c.JSON(http.StatusOK, updatedProperty)
 }
 
@@ -149,7 +148,6 @@ func (h *PropertyHandler) DeleteProperty(c *gin.Context) {
 
 	err = h.propertyUsecase.DeleteProperty(uint(id))
 	if err != nil {
-		logrus.WithError(err).Error("Failed to delete property")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to delete property",
 			"message": err.Error(),
@@ -157,5 +155,6 @@ func (h *PropertyHandler) DeleteProperty(c *gin.Context) {
 		return
 	}
 
+	logrus.Infof("Property with ID: %d deleted successfully", id)
 	c.JSON(http.StatusNoContent, nil)
 }

@@ -24,7 +24,6 @@ func (p *PropertyUseCase) GetAllProperties() ([]models.PropertyResponse, error) 
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("Retrieved %d properties", len(properties))
 	return properties, nil
 }
 
@@ -34,10 +33,8 @@ func (p *PropertyUseCase) GetPropertyByID(id uint) (*models.PropertyResponse, er
 		return nil, err
 	}
 	if property == nil {
-		logrus.Warnf("No property found with ID %d", id)
-		return nil, errors.New("property not found")
+		return nil, err
 	}
-	logrus.Infof("Retrieved property with ID %d", id)
 	return property, nil
 }
 
@@ -59,7 +56,6 @@ func (p *PropertyUseCase) CreateProperty(property *models.Property) (*models.Pro
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("Created property with ID %d", createdProperty.ID)
 	return createdProperty, nil
 }
 
@@ -85,12 +81,11 @@ func (p *PropertyUseCase) UpdateProperty(property *models.Property) (*models.Pro
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("Updated property with ID %d", updatedProperty.ID)
 	return updatedProperty, nil
 }
 
 func (p *PropertyUseCase) DeleteProperty(id uint) error {
-	if id == 0 {
+	if id <= 0 {
 		logrus.Error("Property ID must be provided")
 		return errors.New("property ID must be provided")
 	}
@@ -99,6 +94,5 @@ func (p *PropertyUseCase) DeleteProperty(id uint) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("Deleted property with ID %d", id)
 	return nil
 }

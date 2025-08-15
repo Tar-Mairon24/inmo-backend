@@ -157,6 +157,26 @@ func TestGetUsers_Failure(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "database error")
 	mockUsecase.AssertExpectations(t)
 }
+
+func TestGetUsers_NoUsers(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUsecase := new(MockUserUseCase)
+	handler := handler.NewUserHandler(mockUsecase)
+
+	mockUsecase.On("GetAllUsers").Return([]models.UserResponse{}, nil)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("GET", "/api/v1/users", nil)
+
+	handler.GetUsers(c)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "No users found")
+	assert.Contains(t, w.Body.String(), "No users available in the database")
+	mockUsecase.AssertExpectations(t)
+}
+
 func TestGetUserByID_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUsecase := new(MockUserUseCase)

@@ -91,11 +91,7 @@ func (r *PropertyRepository) GetAll() ([]models.PropertyResponse, error) {
 			logrus.WithError(err).Error("Error occurred while iterating over property rows")
 			return nil, err
 		}
-
-		logrus.Infof("Retrieved %d properties from the database", len(properties))
 	}
-
-	logrus.Infof("Retrieved %d properties from the database", len(properties))
 	return properties, nil
 }
 
@@ -149,14 +145,13 @@ func (r *PropertyRepository) GetByID(id uint) (*models.PropertyResponse, error) 
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logrus.Warnf("No property found with ID %d", id)
+			logrus.WithError(err).Warnf("No property found with ID %d", id)
 			return nil, nil
 		}
 		logrus.WithError(err).Error("Failed to execute query for getting property by ID")
 		return nil, err
 	}
 
-	logrus.Infof("Retrieved property with ID %d from the database", id)
 	return property.ToResponse(), nil
 }
 
@@ -194,7 +189,6 @@ func (r *PropertyRepository) Create(property *models.Property) (*models.Property
 	}
 
 	property.ID = id
-	logrus.Infof("Property created successfully with ID %d", id)
 	return property.ToResponse(), nil
 }
 
@@ -287,6 +281,5 @@ func (r *PropertyRepository) Delete(id uint) error {
 		return errors.New("property not found or already deleted")
 	}
 
-	logrus.Infof("Property with ID %d deleted successfully", id)
 	return nil
 } 

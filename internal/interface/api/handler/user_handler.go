@@ -61,6 +61,15 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 		return
 	}
 
+	if len(users) == 0 {
+		logrus.Warn("No users found")
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "No users found",
+			"message": "No users available in the database",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"data":    users,
 		"message": "Users retrieved successfully",
