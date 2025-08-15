@@ -92,6 +92,12 @@ func (r *PropertyRepository) GetAll() ([]models.PropertyResponse, error) {
 			return nil, err
 		}
 	}
+
+	if len(properties) == 0 {
+		logrus.Warn("No properties found in the database")
+		return nil, nil
+	}
+
 	return properties, nil
 }
 
