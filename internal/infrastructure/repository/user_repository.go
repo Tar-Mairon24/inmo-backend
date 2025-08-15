@@ -105,7 +105,7 @@ func (r *UserRepository) Create(user *models.User) (*models.UserResponse, error)
 	user.ID = uint(id)
     logrus.Infof("User created successfully with ID: %d", user.ID)
 
-	return models.NewUserResponse(user), nil
+	return models.ToUserResponse(user), nil
 }
 
 func (r *UserRepository) GetAll() ([]models.UserResponse, error) {
@@ -212,7 +212,7 @@ func (r *UserRepository) Update(user *models.User) (*models.UserResponse, error)
 		return nil, errors.New("user not found")
 	}
 
-	return models.NewUserResponse(user), nil
+	return models.ToUserResponse(user), nil
 }
 
 func (r *UserRepository) Delete(id uint) error {

@@ -25,12 +25,15 @@ type UserResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func NewUserResponse(user *User) *UserResponse {
-    return &UserResponse{
-        ID:        user.ID,
-        Username:  user.Username,
-        Email:     user.Email,
-        CreatedAt: user.CreatedAt,
-        UpdatedAt: user.UpdatedAt,
-    }
+func ToUserResponse(user *User) *UserResponse {
+	if user == nil {
+		return nil
+	}
+	return &UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
 }
