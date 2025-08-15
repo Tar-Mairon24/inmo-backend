@@ -39,7 +39,7 @@ func (m *MockUserUseCase) GetUserByID(id uint) (*models.UserResponse, error) {
 	}
 	return nil, args.Error(1)
 }
-func (m *MockUserUseCase) CreateUser(user *models.User)(*models.UserResponse, error) {
+func (m *MockUserUseCase) CreateUser(user *models.User) (*models.UserResponse, error) {
 	args := m.Called(user)
 	if userResp, ok := args.Get(0).(*models.UserResponse); ok {
 		return userResp, args.Error(1)

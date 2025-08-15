@@ -253,7 +253,7 @@ func TestUserUseCase_UpdateUser(t *testing.T) {
 	}
 
 	userResponse := &models.UserResponse{
-		ID: 	 userToUpdate.ID,
+		ID: 	  userToUpdate.ID,
 		Username: userToUpdate.Username,
 		Email:    userToUpdate.Email,
 	}

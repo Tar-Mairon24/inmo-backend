@@ -51,7 +51,7 @@ func (r *UserRepository) ConsultPassword(email string) (string, error) {
 }
 
 func (r *UserRepository) GetByEmail(email string) (*models.UserResponse, error) {
-	query := r.qb.Select("id", "username", "email", "created_at, updated_at").
+	query := r.qb.Select("id", "username", "email", "created_at", "updated_at").
 		From("users").
 		Where(squirrel.Eq{"email": email}).
 		Where(squirrel.Expr("deleted_at IS NULL")) // Ensure deleted_at is NULL
