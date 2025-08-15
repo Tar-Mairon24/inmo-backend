@@ -34,6 +34,15 @@ func (h *PropertyHandler) GetProperties(c *gin.Context) {
 		return
 	}
 
+	if len(properties) == 0 {
+		logrus.Warn("No properties found")
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "No properties found",
+			"message": "No properties available in the database",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, properties)
 }
 
