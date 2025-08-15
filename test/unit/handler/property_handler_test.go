@@ -75,6 +75,22 @@ func TestGetProperties_Error(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockUC.AssertExpectations(t)
 }
+
+func TestGetProperties_EmptyList(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUC := new(mockPropertyUseCase)
+	mockUC.On("GetAllProperties").Return([]models.PropertyResponse{}, nil)
+
+	h := handler.NewPropertyHandler(mockUC)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	h.GetProperties(c)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	mockUC.AssertExpectations(t)
+}
+
 func TestGetPropertyByID_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := new(mockPropertyUseCase)
