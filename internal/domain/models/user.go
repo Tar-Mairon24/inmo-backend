@@ -25,7 +25,7 @@ type UserResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func ToUserResponse(user *User) *UserResponse {
+func (user *User) ToUserResponse() *UserResponse {
 	if user == nil {
 		return nil
 	}
