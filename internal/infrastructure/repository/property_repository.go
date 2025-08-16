@@ -95,7 +95,7 @@ func (r *PropertyRepository) GetAll() ([]models.PropertyResponse, error) {
 
 	if len(properties) == 0 {
 		logrus.Warn("No properties found in the database")
-		return nil, nil
+		return []models.PropertyResponse{}, nil
 	}
 
 	return properties, nil
@@ -256,7 +256,7 @@ func (r *PropertyRepository) Update(property *models.Property) (*models.Property
 
 	if rowsAffected == 0 {
 		logrus.Warnf("No rows updated for Property ID %d. It may not exist or has already been deleted.", property.ID)
-		return nil, nil
+		return nil, errors.New("property not found or already deleted")
 	}
 
 	logrus.Infof("Property with ID %d updated successfully", property.ID)
