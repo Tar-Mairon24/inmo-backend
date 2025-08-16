@@ -64,7 +64,7 @@ func Init() {
 	}
 	logrus.Info("Successfully obtained SQL DB connection")
 
-	err = DB.AutoMigrate(&models.User{})
+	err = DB.AutoMigrate(&models.User{}, &models.Property{})
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to auto-migrate database")
 	} else {

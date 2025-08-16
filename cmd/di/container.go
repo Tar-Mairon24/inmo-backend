@@ -2,22 +2,25 @@ package di
 
 import (
 	"database/sql"
-	
-	"inmo-backend/internal/infrastructure/db"
-	"inmo-backend/internal/infrastructure/repository"
-	"inmo-backend/internal/domain/ports"
-	"inmo-backend/internal/usecase"
-	"inmo-backend/internal/interface/api/handler"
 
 	"github.com/sirupsen/logrus"
+
+	"inmo-backend/internal/domain/ports"
+	"inmo-backend/internal/infrastructure/db"
+	"inmo-backend/internal/infrastructure/repository"
+	"inmo-backend/internal/interface/api/handler"
+	"inmo-backend/internal/usecase"
 )
 
 type Container struct {
-	SqlDB      		*sql.DB
-	userRepo   		ports.UserRepository
-	userUsecase 	*usecase.UserUseCase
-	userHandler 	*handler.UserHandler
-	healthHandler 	*handler.HealthHandler
+	SqlDB      			*sql.DB
+	userRepo   			ports.UserRepository
+	propertyRepo    	ports.PropertyRepository
+	userUsecase 		ports.UserUseCase
+	propertyUsecase  	ports.PropertyUseCase
+	userHandler 		*handler.UserHandler
+	propertyHandler 	*handler.PropertyHandler
+	healthHandler 		*handler.HealthHandler
 }
 
 func NewContainer() *Container {
@@ -33,8 +36,11 @@ func NewContainer() *Container {
 	}
 
 	container.userRepo = repository.NewUserRepository(container.SqlDB)
+	container.propertyRepo = repository.NewPropertyRepository(container.SqlDB)
 	container.userUsecase = usecase.NewUserUseCase(container.userRepo)
+	container.propertyUsecase = usecase.NewPropertyUseCase(container.propertyRepo)
 	container.userHandler = handler.NewUserHandler(container.userUsecase)
+	container.propertyHandler = handler.NewPropertyHandler(container.propertyUsecase)
 	container.healthHandler = handler.NewHealthHandler()
 
 	logrus.Info("DI container initialized successfully")
@@ -42,12 +48,14 @@ func NewContainer() *Container {
 }
 
 type Handlers struct {
-	UserHandler   *handler.UserHandler
-	HealthHandler *handler.HealthHandler
+	PropertyHandler 	*handler.PropertyHandler
+	UserHandler   		*handler.UserHandler
+	HealthHandler 		*handler.HealthHandler
 }
 
 func (c *Container) GetHandlers() *Handlers {
 	return &Handlers{
+		PropertyHandler: c.propertyHandler,
 		UserHandler:  c.userHandler,
 		HealthHandler: c.healthHandler,
 	}
