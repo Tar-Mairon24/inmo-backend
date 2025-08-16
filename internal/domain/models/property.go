@@ -36,8 +36,8 @@ type Property struct {
 	PropertyType    PropertyType       `gorm:"not null" json:"property_type"`
     TransactionType TransactionType    `gorm:"not null" json:"transaction_type"`
     Status          PropertyStatus     `gorm:"default:'available'" json:"status"`
-    CreatedAt       time.Time          `json:"created_at"`
-    UpdatedAt       time.Time          `json:"updated_at"`
+    CreatedAt       time.Time          `gorm:"autoCreateTime" json:"created_at"`
+    UpdatedAt       time.Time          `gorm:"autoUpdateTime" json:"updated_at"`
     DeletedAt       *time.Time         `gorm:"index" json:"-"`
 	Owner           *User              `gorm:"foreignKey:OwnerID" json:"owner,omitempty"`
 	User            *User              `gorm:"foreignKey:UserID" json:"user,omitempty"`

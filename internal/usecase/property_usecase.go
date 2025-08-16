@@ -33,7 +33,7 @@ func (p *PropertyUseCase) GetPropertyByID(id uint) (*models.PropertyResponse, er
 		return nil, err
 	}
 	if property == nil {
-		return nil, err
+		return nil, errors.New("property not found")
 	}
 	return property, nil
 }

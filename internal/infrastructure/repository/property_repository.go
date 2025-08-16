@@ -152,7 +152,7 @@ func (r *PropertyRepository) GetByID(id uint) (*models.PropertyResponse, error) 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			logrus.WithError(err).Warnf("No property found with ID %d", id)
-			return nil, nil
+			return nil, err
 		}
 		logrus.WithError(err).Error("Failed to execute query for getting property by ID")
 		return nil, err
@@ -162,40 +162,45 @@ func (r *PropertyRepository) GetByID(id uint) (*models.PropertyResponse, error) 
 }
 
 func (r *PropertyRepository) Create(property *models.Property) (*models.PropertyResponse, error) {
-	query := r.qb.Insert("properties").
-		Columns(
-			"title", "listing_date", "address", "neighborhood", "city",
-			"zone", "reference", "price", "construction_m2", "land_m2",
-			"is_occupied", "is_furnished", "floors", "bedrooms", "bathrooms",
-			"garage_size", "garden_m2", "gas_types", "amenities", "extras",
-			"utilities", "notes", "owner_id", "user_id", "property_type",
-			"transaction_type", "status",
-		).
-		Values(
-			property.Title, property.ListingDate, property.Address, property.Neighborhood, property.City,
-			property.Zone, property.Reference, property.Price, property.ConstructionM2, property.LandM2,
-			property.IsOccupied, property.IsFurnished, property.Floors, property.Bedrooms, property.Bathrooms,
-			property.GarageSize, property.GardenM2, property.GasTypes, property.Amenities, property.Extras,
-			property.Utilities, property.Notes, property.OwnerID, property.UserID, property.PropertyType,
-			property.TransactionType, property.Status,
-		).
-		Suffix("RETURNING id")
+    query := r.qb.Insert("properties").
+        Columns(
+            "title", "listing_date", "address", "neighborhood", "city",
+            "zone", "reference", "price", "construction_m2", "land_m2",
+            "is_occupied", "is_furnished", "floors", "bedrooms", "bathrooms",
+            "garage_size", "garden_m2", "gas_types", "amenities", "extras",
+            "utilities", "notes", "owner_id", "user_id", "property_type",
+            "transaction_type", "status",
+        ).
+        Values(
+            property.Title, property.ListingDate, property.Address, property.Neighborhood, property.City,
+            property.Zone, property.Reference, property.Price, property.ConstructionM2, property.LandM2,
+            property.IsOccupied, property.IsFurnished, property.Floors, property.Bedrooms, property.Bathrooms,
+            property.GarageSize, property.GardenM2, property.GasTypes, property.Amenities, property.Extras,
+            property.Utilities, property.Notes, property.OwnerID, property.UserID, property.PropertyType,
+            property.TransactionType, property.Status,
+        )
 
-	sqlStr, args, err := query.ToSql()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to build SQL query for creating a new property")
-		return nil, err
-	}
+    sqlStr, args, err := query.ToSql()
+    if err != nil {
+        logrus.WithError(err).Error("Failed to build SQL query for creating a new property")
+        return nil, err
+    }
 
-	var id uint
-	err = r.db.QueryRow(sqlStr, args...).Scan(&id)
-	if err != nil {
-		logrus.WithError(err).Error("Failed to execute query for creating a new property")
-		return nil, err
-	}
+    result, err := r.db.Exec(sqlStr, args...)
+    if err != nil {
+        logrus.WithError(err).Error("Failed to execute query for creating a new property")
+        return nil, err
+    }
 
-	property.ID = id
-	return property.ToResponse(), nil
+    id, err := result.LastInsertId()
+    if err != nil {
+        logrus.WithError(err).Error("Failed to get last insert ID")
+        return nil, err
+    }
+
+    property.ID = uint(id)
+    logrus.Infof("Property created successfully with ID: %d", property.ID)
+    return property.ToResponse(), nil
 }
 
 func (r *PropertyRepository) Update(property *models.Property) (*models.PropertyResponse, error) {
