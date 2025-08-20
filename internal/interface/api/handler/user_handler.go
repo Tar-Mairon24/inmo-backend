@@ -33,16 +33,19 @@ func (h *UserHandler) UserLogin(c *gin.Context) {
 		return
 	}
 
-	if err := h.userUsecase.Login(loginData.Email, loginData.Password); err != nil {
+	loginResponse, err := h.userUsecase.Login(loginData.Email, loginData.Password);
+	if err != nil {
 		logrus.WithError(err).Error("Login failed")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error":   "Unauthorized",
-			"message": "Invalid email or password",
+			"message": err.Error(),
 		})
 		return
 	}
+	logrus.Infof("User %s logged in succesfully", loginResponse.User.Username)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
+		"data": loginResponse,
 	})
 }
 
