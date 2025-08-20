@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/sirupsen/logrus"
@@ -169,7 +170,7 @@ func (r *PropertyRepository) Create(property *models.Property) (*models.Property
             "is_occupied", "is_furnished", "floors", "bedrooms", "bathrooms",
             "garage_size", "garden_m2", "gas_types", "amenities", "extras",
             "utilities", "notes", "owner_id", "user_id", "property_type",
-            "transaction_type", "status",
+            "transaction_type", "status", "created_at", "updated_at",
         ).
         Values(
             property.Title, property.ListingDate, property.Address, property.Neighborhood, property.City,
@@ -177,7 +178,7 @@ func (r *PropertyRepository) Create(property *models.Property) (*models.Property
             property.IsOccupied, property.IsFurnished, property.Floors, property.Bedrooms, property.Bathrooms,
             property.GarageSize, property.GardenM2, property.GasTypes, property.Amenities, property.Extras,
             property.Utilities, property.Notes, property.OwnerID, property.UserID, property.PropertyType,
-            property.TransactionType, property.Status,
+            property.TransactionType, property.Status, time.Now(), time.Now(),
         )
 
     sqlStr, args, err := query.ToSql()
@@ -199,6 +200,8 @@ func (r *PropertyRepository) Create(property *models.Property) (*models.Property
     }
 
     property.ID = uint(id)
+	property.CreatedAt = time.Now()
+	property.UpdatedAt = time.Now()
     logrus.Infof("Property created successfully with ID: %d", property.ID)
     return property.ToResponse(), nil
 }

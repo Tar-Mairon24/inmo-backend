@@ -8,6 +8,7 @@ import (
 	"inmo-backend/internal/domain/ports"
 	"inmo-backend/internal/infrastructure/db"
 	"inmo-backend/internal/infrastructure/repository"
+	"inmo-backend/internal/infrastructure/service"
 	"inmo-backend/internal/interface/api/handler"
 	"inmo-backend/internal/usecase"
 )
@@ -18,6 +19,7 @@ type Container struct {
 	propertyRepo    	ports.PropertyRepository
 	userUsecase 		ports.UserUseCase
 	propertyUsecase  	ports.PropertyUseCase
+	jwtService 			ports.JWTService
 	userHandler 		*handler.UserHandler
 	propertyHandler 	*handler.PropertyHandler
 	healthHandler 		*handler.HealthHandler
@@ -35,10 +37,18 @@ func NewContainer() *Container {
 		logrus.Fatal("Failed to initialize database connection")
 	}
 
+	// repos
 	container.userRepo = repository.NewUserRepository(container.SqlDB)
 	container.propertyRepo = repository.NewPropertyRepository(container.SqlDB)
-	container.userUsecase = usecase.NewUserUseCase(container.userRepo)
+
+	// services
+	container.jwtService = service.NewJWTService(container.userRepo)
+
+	// usecases
+	container.userUsecase = usecase.NewUserUseCase(container.userRepo, container.jwtService)
 	container.propertyUsecase = usecase.NewPropertyUseCase(container.propertyRepo)
+
+	// handlers
 	container.userHandler = handler.NewUserHandler(container.userUsecase)
 	container.propertyHandler = handler.NewPropertyHandler(container.propertyUsecase)
 	container.healthHandler = handler.NewHealthHandler()
@@ -58,5 +68,15 @@ func (c *Container) GetHandlers() *Handlers {
 		PropertyHandler: c.propertyHandler,
 		UserHandler:  c.userHandler,
 		HealthHandler: c.healthHandler,
+	}
+}
+
+type Services struct {
+	JwtService 			ports.JWTService
+}
+
+func (c *Container) GetServices() Services{
+	return Services{
+		JwtService: c.jwtService,
 	}
 }

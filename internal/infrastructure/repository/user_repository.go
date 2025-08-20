@@ -50,8 +50,8 @@ func (r *UserRepository) ConsultPassword(email string) (string, error) {
 	return password, nil
 }
 
-func (r *UserRepository) GetByEmail(email string) (*models.UserResponse, error) {
-	query := r.qb.Select("id", "username", "email", "created_at", "updated_at").
+func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
+	query := r.qb.Select("id", "username", "email", "password", "created_at", "updated_at").
 		From("users").
 		Where(squirrel.Eq{"email": email}).
 		Where(squirrel.Expr("deleted_at IS NULL")) // Ensure deleted_at is NULL
@@ -62,9 +62,9 @@ func (r *UserRepository) GetByEmail(email string) (*models.UserResponse, error) 
 		return nil, err
 	}
 
-	var User models.UserResponse
+	var User models.User
 	err = r.db.QueryRow(sqlStr, args...).Scan(
-		&User.ID, &User.Username, &User.Email, &User.CreatedAt, &User.UpdatedAt,
+		&User.ID, &User.Username, &User.Email, &User.Password, &User.CreatedAt, &User.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

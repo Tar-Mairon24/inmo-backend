@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"errors"
+	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -11,25 +12,47 @@ import (
 )
 
 type UserUseCase struct {
-	repo ports.UserRepository
+	repo        ports.UserRepository
+	jwtService  ports.JWTService
 }
 
-func NewUserUseCase(repo ports.UserRepository) *UserUseCase {
-	return &UserUseCase{repo: repo}
+func NewUserUseCase(repo ports.UserRepository, jwtService ports.JWTService) *UserUseCase {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		logrus.Fatal("JWT_SECRET environment variable is not set")
+	}
+	return &UserUseCase{
+		repo:      repo,
+		jwtService: jwtService,
+	}
 }
 
-func (uc *UserUseCase) Login(email string, password string) error {
-	databasePassword, err := uc.repo.ConsultPassword(email)
+func (uc *UserUseCase) Login(email string, password string) (*models.LoginResponse, error) {
+	if email == "" || password == "" {
+		logrus.Error("Email and password cannot be empty")
+		return nil, errors.New("email and password cannot be empty")
+	}
+	user, err := uc.repo.GetByEmail(email)
 	if err != nil {
-		return err
+		logrus.WithError(err).Error("Failed to get user by email")
+		return nil, errors.New("user not found")
 	}
 
-	if err := middleware.VerifyPassword(databasePassword, password); err != nil {
+	if err := middleware.VerifyPassword(user.Password, password); err != nil {
 		logrus.WithError(err).Error("Password verification failed")
-		return err
+		return nil, err
 	}
-	logrus.Info("User login successful")
-	return nil
+
+	token, err := uc.jwtService.GenerateToken(user)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to generate token")
+		return nil, err
+	}
+
+	logrus.Infof("User %s login successful", user.Username)
+	return &models.LoginResponse{
+		User:  user.ToUserResponse(),
+		Token: token}, nil
 }
 
 func (uc *UserUseCase) GetAllUsers() ([]models.UserResponse, error) {
@@ -41,16 +64,10 @@ func (uc *UserUseCase) GetUserByID(id uint) (*models.UserResponse, error) {
 }
 
 func (uc *UserUseCase) CreateUser(user *models.User) (*models.UserResponse, error) {
-	if(user.Password == "") {
+	if user.Password == "" {
 		logrus.Error("Password cannot be empty")
 		return nil, errors.New("password cannot be empty")
 	}
-	hashedPassword, err := middleware.HashPassword(user.Password)
-	if err != nil {
-		logrus.WithError(err).Error("Failed to hash password")
-		return nil, err
-	}
-	user.Password = hashedPassword
 	if user.Username == "" {
 		logrus.Error("Username cannot be empty")
 		return nil, errors.New("username cannot be empty")
@@ -59,6 +76,14 @@ func (uc *UserUseCase) CreateUser(user *models.User) (*models.UserResponse, erro
 		logrus.Error("Email cannot be empty")
 		return nil, errors.New("email cannot be empty")
 	}
+
+	hashedPassword, err := middleware.HashPassword(user.Password)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to hash password")
+		return nil, err
+	}
+	user.Password = hashedPassword
+
 
 	return uc.repo.Create(user)
 }
