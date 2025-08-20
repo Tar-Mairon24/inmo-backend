@@ -13,7 +13,7 @@ func SetupRouter(handlers *di.Handlers, services di.Services) *gin.Engine {
 	{
 		setupHealthRoutes(v1, handlers.HealthHandler)
 		setupUserRoutes(v1, handlers.UserHandler, services.JwtService)
-		setupPropertyRoutes(v1, handlers.PropertyHandler)
+		setupPropertyRoutes(v1, handlers.PropertyHandler, services.JwtService)
 	}
 
 	return r
