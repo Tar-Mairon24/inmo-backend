@@ -40,7 +40,7 @@ func main() {
 
 	container := di.NewContainer()
 
-	r := api.SetupRouter(container.GetHandlers())
+	r := api.SetupRouter(container.GetHandlers(), container.GetServices())
 
 	port := os.Getenv("SERVER_PORT")
 

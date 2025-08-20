@@ -70,3 +70,13 @@ func (c *Container) GetHandlers() *Handlers {
 		HealthHandler: c.healthHandler,
 	}
 }
+
+type Services struct {
+	JwtService 			ports.JWTService
+}
+
+func (c *Container) GetServices() Services{
+	return Services{
+		JwtService: c.jwtService,
+	}
+}

@@ -1,25 +1,24 @@
 package api
 
 import (
-	"os/user"
-
 	"github.com/gin-gonic/gin"
 
+	"inmo-backend/internal/domain/ports"
 	"inmo-backend/internal/interface/api/handler"
 	"inmo-backend/middleware"
 )
 
-func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler) {
+func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtService ports.JWTService) {
 	users := rg.Group("/users")
 	{
-		users.GET("", userHandler.GetUsers)          // GET /api/v1/users
-		users.POST("/login", userHandler.UserLogin)  // POST /api/v1/users/login
+		users.GET("", userHandler.GetUsers)         // GET /api/v1/users
+		users.POST("/login", userHandler.UserLogin) // POST /api/v1/users/login
 	}
 
 	protected := users.Group("")
-	protected.Use(middleware.JWTAuthMiddleware())
+	protected.Use(middleware.JWTAuthMiddleware(jwtService))
 	{
-		
+
 		protected.GET("/:id", userHandler.GetUserByID)   // GET /api/v1/users/:id
 		protected.POST("", userHandler.CreateUser)       // POST /api/v1/users
 		protected.PUT("/:id", userHandler.UpdateUser)    // PUT /api/v1/users
