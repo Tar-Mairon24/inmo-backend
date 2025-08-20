@@ -10,7 +10,7 @@ import (
 	"inmo-backend/internal/domain/ports"
 )
 
-func JWTAuthMiddleware(userUsecase ports.UserUseCase) gin.HandlerFunc {
+func JWTAuthMiddleware(jwtService ports.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -34,7 +34,7 @@ func JWTAuthMiddleware(userUsecase ports.UserUseCase) gin.HandlerFunc {
 		}
 
 		token := tokenParts[1]
-		claims, err := userUsecase.ValidateToken(token)
+		claims, err := jwtService.ValidateToken(token)
 		if err != nil {
 			logrus.WithError(err).Warn("Token validation failed")
 			c.JSON(http.StatusUnauthorized, gin.H{
