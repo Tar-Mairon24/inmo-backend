@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -12,9 +14,41 @@ import (
 	"inmo-backend/internal/usecase"
 	"inmo-backend/middleware"
 )
+	
 
 type MockUserRepository struct {
 	mock.Mock
+}
+
+type MockJWTService struct {
+	mock.Mock
+}
+
+func TestMain(m *testing.M){
+	err := godotenv.Load("../../../.env")
+	if err != nil {
+		logrus.Error("Could not load .env: ", err)
+	}
+	m.Run()
+}
+
+// GenerateToken mocks the token generation for a user
+func (m *MockJWTService) GenerateToken(user *models.User) (string, error) {
+	args := m.Called(user)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockJWTService) ValidateToken(token string) (*models.JWTClaims, error) {
+	args := m.Called(token)
+	if claims, ok := args.Get(0).(*models.JWTClaims); ok {
+		return claims, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockJWTService) RefreshToken(token string) (string, error) {
+	args := m.Called(token)
+	return args.String(0), args.Error(1)
 }
 
 func (m *MockUserRepository) Create(user *models.User) (*models.UserResponse, error) {
@@ -36,8 +70,11 @@ func (m *MockUserRepository) ConsultPassword(username string) (string, error) {
 	return args.String(0), args.Error(1)
 }
 func (m *MockUserRepository) GetAll() ([]models.UserResponse, error) {
-	args := m.Called()
-	return args.Get(0).([]models.UserResponse), args.Error(1)
+    args := m.Called()
+    if users, ok := args.Get(0).([]models.UserResponse); ok {
+        return users, args.Error(1)
+    }
+    return nil, args.Error(1)
 }
 func (m *MockUserRepository) Update(user *models.User) (*models.UserResponse, error) {
 	args := m.Called(user)
@@ -50,239 +87,368 @@ func (m *MockUserRepository) Delete(userID uint) error {
 	args := m.Called(userID)
 	return args.Error(0)
 }
-func (m *MockUserRepository) GetByEmail(email string) (*models.UserResponse, error) {
+func (m *MockUserRepository) GetByEmail(email string) (*models.User, error) {
 	args := m.Called(email)
-	user, _ := args.Get(0).(*models.UserResponse)
+	user, _ := args.Get(0).(*models.User)
 	return user, args.Error(1)
 }
 
-func TestUserUsecase_CreateUser(t *testing.T) {
-	type testCase struct {
-		name           string
-		user           *models.User
-		mockError      error
-		wantError      bool
-		shouldCallRepo bool
-	}
 
-	tests := []testCase{
-		{
-			name: "valid user",
-			user: &models.User{
-				Username: "testuser",
-				Email:    "test@example.com",
-				Password: "testpassword",
-			},
-			wantError:      false,
-			shouldCallRepo: true,
-		},
-		{
-			name: "empty username",
-			user: &models.User{
-				Username: "",
-				Email:    "test@example.com",
-				Password: "testpassword",
-			},
-			wantError:      true,
-			shouldCallRepo: false,
-		},
-		{
-			name: "empty email",
-			user: &models.User{
-				Username: "testuser",
-				Email:    "",
-				Password: "testpassword",
-			},
-			wantError:      true,
-			shouldCallRepo: false,
-		},
-		{
-			name: "empty password",
-			user: &models.User{
-				Username: "testuser",
-				Email:    "test@example.com",
-				Password: "",
-			},
-			wantError:      true,
-			shouldCallRepo: false,
-		},
-		{
-			name: "repository error",
-			user: &models.User{
-				Username: "testuser",
-				Email:    "test@example.com",
-				Password: "testpassword",
-			},
-			mockError:      assert.AnError, // Simulate an error from the repository
-			wantError:      true,
-			shouldCallRepo: true,
-		},
-	}
+func TestUserUseCase_Login(t *testing.T) {
+	t.Run("should return error when email is empty", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRepo := new(MockUserRepository)
-			usecase := usecase.NewUserUseCase(mockRepo)
-			userResponse := &models.UserResponse{
-				ID:        1,
-				Username:  tc.user.Username,
-				Email:     tc.user.Email,
-			}
+		result, err := uc.Login("", "password")
 
-			if tc.shouldCallRepo {
-				mockRepo.On("Create", tc.user).Return(userResponse, tc.mockError).Once()
-			}
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "email and password cannot be empty", err.Error())
+	})
 
-			_, err := usecase.CreateUser(tc.user)
+	t.Run("should return error when password is empty", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
 
-			if tc.wantError {
-				assert.Error(t, err, "Expected error for case: %s", tc.name)
-			} else {
-				assert.NoError(t, err, "Expected no error for case: %s", tc.name)
-			}
-			mockRepo.AssertExpectations(t)
-		})
-	}
-}
-func TestUserUsecase_Login(t *testing.T) {
-	t.Run("successful login", func(t *testing.T) {
-		mockRepo := new(MockUserRepository)
-		uc := usecase.NewUserUseCase(mockRepo)
+		result, err := uc.Login("test@example.com", "")
 
-		email := "test@example.com"
-		password := "mypassword123"
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "email and password cannot be empty", err.Error())
+	})
 
-		hash, err := middleware.HashPassword(password)
-		require.NoError(t, err)
+	t.Run("should return error when user not found", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
 
-		mockRepo.On("ConsultPassword", email).Return(hash, nil)
+		mockRepo.On("GetByEmail", "test@example.com").Return(nil, errors.New("user not found"))
 
-		err = uc.Login(email, password)
+		result, err := uc.Login("test@example.com", "password")
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "user not found", err.Error())
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when password verification fails", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		hashedPassword, _ := middleware.HashPassword("correctpassword")
+		user := &models.User{
+			ID:       1,
+			Username: "testuser",
+			Email:    "test@example.com",
+			Password: hashedPassword,
+		}
+
+		mockRepo.On("GetByEmail", "test@example.com").Return(user, nil)
+
+		result, err := uc.Login("test@example.com", "wrongpassword")
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when token generation fails", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		hashedPassword, _ := middleware.HashPassword("password")
+		user := &models.User{
+			ID:       1,
+			Username: "testuser",
+			Email:    "test@example.com",
+			Password: hashedPassword,
+		}
+
+		mockRepo.On("GetByEmail", "test@example.com").Return(user, nil)
+		mockJWT.On("GenerateToken", user).Return("", errors.New("token generation failed"))
+
+		result, err := uc.Login("test@example.com", "password")
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "token generation failed", err.Error())
+		mockRepo.AssertExpectations(t)
+		mockJWT.AssertExpectations(t)
+	})
+
+	t.Run("should login successfully", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		hashedPassword, _ := middleware.HashPassword("password")
+		user := &models.User{
+			ID:       1,
+			Username: "testuser",
+			Email:    "test@example.com",
+			Password: hashedPassword,
+		}
+
+		mockRepo.On("GetByEmail", "test@example.com").Return(user, nil)
+		mockJWT.On("GenerateToken", user).Return("mock-token", nil)
+
+		result, err := uc.Login("test@example.com", "password")
+
 		assert.NoError(t, err)
-	})
-
-	t.Run("wrong password", func(t *testing.T) {
-		mockRepo := new(MockUserRepository)
-		uc := usecase.NewUserUseCase(mockRepo)
-
-		email := "test@example.com"
-		correctPassword := "mypassword123"
-		wrongPassword := "wrongpassword"
-
-		// Hash of correct password
-		hash, err := middleware.HashPassword(correctPassword)
-		require.NoError(t, err)
-
-		mockRepo.On("ConsultPassword", email).Return(hash, nil)
-
-		// Try to login with wrong password
-		err = uc.Login(email, wrongPassword)
-		assert.Error(t, err)
-	})
-
-	t.Run("user not found", func(t *testing.T) {
-		mockRepo := new(MockUserRepository)
-		uc := usecase.NewUserUseCase(mockRepo)
-
-		mockRepo.On("ConsultPassword", "notfound@test.com").Return("", errors.New("user not found"))
-
-		err := uc.Login("notfound@test.com", "anypassword")
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
-	})
-
-	t.Run("hashing error", func(t *testing.T) {
-		mockRepo := new(MockUserRepository)
-		uc := usecase.NewUserUseCase(mockRepo)
-
-		mockRepo.On("ConsultPassword", "hashingerror@test.com").Return("", errors.New("hashing error"))
-
-		err := uc.Login("hashingerror@test.com", "anyPassword")
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "hashing error")
+		require.NotNil(t, result)
+		assert.Equal(t, "mock-token", result.Token)
+		assert.Equal(t, user.ToUserResponse(), result.User)
+		mockRepo.AssertExpectations(t)
+		mockJWT.AssertExpectations(t)
 	})
 }
-
 func TestUserUseCase_GetAllUsers(t *testing.T) {
-	mockRepo := new(MockUserRepository)
-	uc := usecase.NewUserUseCase(mockRepo)
+	t.Run("should return all users successfully", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
 
-	expectedUsers := []models.UserResponse{
-		{ID: 1, Username: "user1", Email: "user1@email.com"},
-		{ID: 2, Username: "user2", Email: "user2@email.com"},
-	}
-	mockRepo.On("GetAll").Return(expectedUsers, nil)
-	users, err := uc.GetAllUsers()
-	assert.NoError(t, err)
-	assert.Equal(t, expectedUsers, users)
-	mockRepo.AssertExpectations(t)
+		users := []models.UserResponse{
+			{ID: 1, Username: "user1", Email: "user1@example.com"},
+			{ID: 2, Username: "user2", Email: "user2@example.com"},
+		}
+
+		mockRepo.On("GetAll").Return(users, nil)
+
+		result, err := uc.GetAllUsers()
+
+		assert.NoError(t, err)
+		assert.Equal(t, users, result)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when repository fails", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		mockRepo.On("GetAll").Return(nil, errors.New("repo error"))
+
+		result, err := uc.GetAllUsers()
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "repo error", err.Error())
+		mockRepo.AssertExpectations(t)
+	})
 }
-
 func TestUserUseCase_GetUserByID(t *testing.T) {
-	mockRepo := new(MockUserRepository)
-	uc := usecase.NewUserUseCase(mockRepo)
+	t.Run("should return user response when user exists", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
 
-	expectedUser := &models.UserResponse{ID: 1, Username: "user1", Email: "user1@email.com"}
-	mockRepo.On("GetByID", uint(1)).Return(expectedUser, nil)
-	user, err := uc.GetUserByID(1)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedUser, user)
-	mockRepo.AssertExpectations(t)
+		expectedUser := &models.UserResponse{
+			ID:       1,
+			Username: "testuser",
+			Email:    "test@example.com",
+		}
+
+		mockRepo.On("GetByID", uint(1)).Return(expectedUser, nil)
+
+		result, err := uc.GetUserByID(1)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedUser, result)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when user not found", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		mockRepo.On("GetByID", uint(2)).Return(nil, errors.New("user not found"))
+
+		result, err := uc.GetUserByID(2)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "user not found", err.Error())
+		mockRepo.AssertExpectations(t)
+	})
 }
+func TestUserUseCase_CreateUser(t *testing.T) {
+	t.Run("should return error when password is empty", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
 
-func TestUserUseCase_GetUserByID_NotFound(t *testing.T) {
-	mockRepo := new(MockUserRepository)
-	uc := usecase.NewUserUseCase(mockRepo)
+		user := &models.User{
+			Username: "testuser",
+			Email:    "test@example.com",
+			Password: "",
+		}
 
-	mockRepo.On("GetByID", uint(999)).Return(nil, errors.New("user not found"))
-	user, err := uc.GetUserByID(999)
-	assert.Error(t, err)
-	assert.Nil(t, user)
-	mockRepo.AssertExpectations(t)
+		result, err := uc.CreateUser(user)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "password cannot be empty", err.Error())
+	})
+
+	t.Run("should return error when username is empty", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		user := &models.User{
+			Username: "",
+			Email:    "test@example.com",
+			Password: "password",
+		}
+
+		result, err := uc.CreateUser(user)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "username cannot be empty", err.Error())
+	})
+
+	t.Run("should return error when email is empty", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		user := &models.User{
+			Username: "testuser",
+			Email:    "",
+			Password: "password",
+		}
+
+		result, err := uc.CreateUser(user)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "email cannot be empty", err.Error())
+	})
+
+	t.Run("should create user successfully", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		user := &models.User{
+			Username: "testuser",
+			Email:    "test@example.com",
+			Password: "password",
+		}
+
+		// Use real hash for password
+		hashedPassword, _ := middleware.HashPassword("password")
+		expectedUser := &models.User{
+			Username: "testuser",
+			Email:    "test@example.com",
+			Password: hashedPassword,
+		}
+		expectedResponse := &models.UserResponse{
+			ID:       1,
+			Username: "testuser",
+			Email:    "test@example.com",
+		}
+
+		mockRepo.On("Create", mock.MatchedBy(func(u *models.User) bool {
+			return u.Username == expectedUser.Username &&
+				u.Email == expectedUser.Email &&
+				u.Password != "" && u.Password != "password"
+		})).Return(expectedResponse, nil)
+
+		result, err := uc.CreateUser(user)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedResponse, result)
+		mockRepo.AssertExpectations(t)
+	})
 }
-
 func TestUserUseCase_UpdateUser(t *testing.T) {
-	mockRepo := new(MockUserRepository)
-	uc := usecase.NewUserUseCase(mockRepo)
+	t.Run("should update user successfully", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
 
-	userToUpdate := &models.User{
-		ID:       1,
-		Username: "updatedUser",
-		Email:    "update@update.com",
-		Password: "newpassword",
-	}
+		user := &models.User{
+			ID:       1,
+			Username: "updateduser",
+			Email:    "updated@example.com",
+			Password: "newpassword",
+		}
+		expectedResponse := &models.UserResponse{
+			ID:       1,
+			Username: "updateduser",
+			Email:    "updated@example.com",
+		}
 
-	userResponse := &models.UserResponse{
-		ID: 	  userToUpdate.ID,
-		Username: userToUpdate.Username,
-		Email:    userToUpdate.Email,
-	}
+		mockRepo.On("Update", user).Return(expectedResponse, nil)
 
-	mockRepo.On("Update", userToUpdate).Return(userResponse, nil)
-	_, err := uc.UpdateUser(userToUpdate)
-	assert.NoError(t, err)
-	mockRepo.AssertExpectations(t)
+		result, err := uc.UpdateUser(user)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedResponse, result)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when update fails", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		user := &models.User{
+			ID:       2,
+			Username: "failuser",
+			Email:    "fail@example.com",
+			Password: "password",
+		}
+
+		mockRepo.On("Update", user).Return(nil, errors.New("update failed"))
+
+		result, err := uc.UpdateUser(user)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+		assert.Equal(t, "update failed", err.Error())
+		mockRepo.AssertExpectations(t)
+	})
 }
-
 func TestUserUseCase_DeleteUser(t *testing.T) {
-	mockRepo := new(MockUserRepository)
-	uc := usecase.NewUserUseCase(mockRepo)
+	t.Run("should delete user successfully", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
 
-	userID := uint(1)
-	mockRepo.On("Delete", userID).Return(nil)
-	err := uc.DeleteUser(userID)
-	assert.NoError(t, err)
-	mockRepo.AssertExpectations(t)
+		mockRepo.On("Delete", uint(1)).Return(nil)
+
+		err := uc.DeleteUser(1)
+
+		assert.NoError(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when delete fails", func(t *testing.T) {
+		mockRepo := &MockUserRepository{}
+		mockJWT := &MockJWTService{}
+		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+
+		mockRepo.On("Delete", uint(2)).Return(errors.New("delete failed"))
+
+		err := uc.DeleteUser(2)
+
+		assert.Error(t, err)
+		assert.Equal(t, "delete failed", err.Error())
+		mockRepo.AssertExpectations(t)
+	})
 }
 
-func TestUserUseCase_DeleteUser_NotFound(t *testing.T) {
-	mockRepo := new(MockUserRepository)
-	uc := usecase.NewUserUseCase(mockRepo)
 
-	userID := uint(999)
-	mockRepo.On("Delete", userID).Return(errors.New("user not found"))
-	err := uc.DeleteUser(userID)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "user not found")
-	mockRepo.AssertExpectations(t)
-}
+
+
+
