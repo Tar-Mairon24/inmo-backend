@@ -9,7 +9,4 @@ type UserUseCase interface {
 	UpdateUser(user *models.User) (*models.UserResponse, error)
 	DeleteUser(id uint) error
 	Login(email string, password string) (*models.LoginResponse, error)
-	GenerateToken(user *models.User) (string, error)
-	ValidateToken(token string) (*models.JWTClaims, error)
-	RefreshToken(token string) (*models.JWTClaims, error)
 }
