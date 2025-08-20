@@ -37,18 +37,18 @@ func NewContainer() *Container {
 		logrus.Fatal("Failed to initialize database connection")
 	}
 
-	//repos
+	// repos
 	container.userRepo = repository.NewUserRepository(container.SqlDB)
 	container.propertyRepo = repository.NewPropertyRepository(container.SqlDB)
 
-	//services
+	// services
 	container.jwtService = service.NewJWTService(container.userRepo)
 
-	//usecases
+	// usecases
 	container.userUsecase = usecase.NewUserUseCase(container.userRepo, container.jwtService)
 	container.propertyUsecase = usecase.NewPropertyUseCase(container.propertyRepo)
 
-	//handlers
+	// handlers
 	container.userHandler = handler.NewUserHandler(container.userUsecase)
 	container.propertyHandler = handler.NewPropertyHandler(container.propertyUsecase)
 	container.healthHandler = handler.NewHealthHandler()
