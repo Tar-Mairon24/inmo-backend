@@ -44,8 +44,9 @@ func (h *UserHandler) UserLogin(c *gin.Context) {
 	}
 	logrus.Infof("User %s logged in succesfully", loginResponse.User.Username)
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Login successful",
+		"success": true,
 		"data": loginResponse,
+		"message": "Login successful",
 	})
 }
 
