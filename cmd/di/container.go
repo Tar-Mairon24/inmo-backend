@@ -23,6 +23,7 @@ type Container struct {
 	userHandler 		*handler.UserHandler
 	propertyHandler 	*handler.PropertyHandler
 	healthHandler 		*handler.HealthHandler
+	authHandler 		*handler.AuthHandler
 }
 
 func NewContainer() *Container {
@@ -51,6 +52,7 @@ func NewContainer() *Container {
 	// handlers
 	container.userHandler = handler.NewUserHandler(container.userUsecase)
 	container.propertyHandler = handler.NewPropertyHandler(container.propertyUsecase)
+	container.authHandler = handler.NewAuthHandler(container.jwtService, container.userUsecase)
 	container.healthHandler = handler.NewHealthHandler()
 
 	logrus.Info("DI container initialized successfully")
@@ -61,6 +63,7 @@ type Handlers struct {
 	PropertyHandler 	*handler.PropertyHandler
 	UserHandler   		*handler.UserHandler
 	HealthHandler 		*handler.HealthHandler
+	AuthHandler 		*handler.AuthHandler
 }
 
 func (c *Container) GetHandlers() *Handlers {
@@ -68,6 +71,7 @@ func (c *Container) GetHandlers() *Handlers {
 		PropertyHandler: c.propertyHandler,
 		UserHandler:  c.userHandler,
 		HealthHandler: c.healthHandler,
+		AuthHandler: c.authHandler,
 	}
 }
 
