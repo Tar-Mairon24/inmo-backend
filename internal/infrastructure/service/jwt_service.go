@@ -24,7 +24,7 @@ func NewJWTService(userRepo ports.UserRepository) *JWTService {
 	if secret == "" {
 		logrus.Fatal("JWT_SECRET environment variable is not set")
 	}
-	expiration := 60 * time.Second
+	expiration := 24 * time.Hour
 	if envExp := os.Getenv("JWT_EXPIRATION_HOURS"); envExp != "" {
 		if hours, err := time.ParseDuration(envExp + "s"); err == nil {
 			logrus.Infof("Using custom JWT expiration: %s", hours)
