@@ -16,3 +16,7 @@ type LoginResponse struct {
 	Token 		string         `json:"token"`
 }
 
+type RefreshTokenData struct {
+    Token string `json:"token" binding:"required"`
+}
+
