@@ -22,34 +22,6 @@ func NewUserHandler(userUsecase ports.UserUseCase) *UserHandler {
 	}
 }
 
-func (h *UserHandler) UserLogin(c *gin.Context) {
-	var loginData = models.UserLoginData{}
-	if err := c.ShouldBindJSON(&loginData); err != nil {
-		logrus.WithError(err).Error("Invalid login data")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid request",
-			"message": "Failed to parse login data",
-		})
-		return
-	}
-
-	loginResponse, err := h.userUsecase.Login(loginData.Email, loginData.Password);
-	if err != nil {
-		logrus.WithError(err).Error("Login failed")
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Unauthorized",
-			"message": err.Error(),
-		})
-		return
-	}
-	logrus.Infof("User %s logged in succesfully", loginResponse.User.Username)
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data": loginResponse,
-		"message": "Login successful",
-	})
-}
-
 // GetUsers handles GET /api/v1/users
 func (h *UserHandler) GetUsers(c *gin.Context) {
 	logrus.Info("GetUsers endpoint called")

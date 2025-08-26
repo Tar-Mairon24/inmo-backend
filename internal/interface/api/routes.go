@@ -8,20 +8,25 @@ import (
 	"inmo-backend/middleware"
 )
 
-func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtService ports.JWTService) {
-	users := rg.Group("/users")
-	{
-		users.POST("/login", userHandler.UserLogin) // POST /api/v1/users/login
-	}
+func setupAuthRoutes(rg *gin.RouterGroup, authHandler *handler.AuthHandler) {
 
-	protected := users.Group("")
-	protected.Use(middleware.JWTAuthMiddleware(jwtService))
+	auth := rg.Group("/auth")
 	{
-		protected.GET("", userHandler.GetUsers)         // GET /api/v1/users
-		protected.GET("/:id", userHandler.GetUserByID)   // GET /api/v1/users/:id
-		protected.POST("", userHandler.CreateUser)       // POST /api/v1/users
-		protected.PUT("/:id", userHandler.UpdateUser)    // PUT /api/v1/users
-		protected.DELETE("/:id", userHandler.DeleteUser) // DELETE /api/v1/users/:id
+		auth.POST("/login", authHandler.UserLogin)   // POST /api/v1/auth/login
+		auth.POST("/refresh-token", authHandler.RefreshToken) // POST /api/v1/auth/refresh-token
+	}
+}
+
+func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtService ports.JWTService) {
+
+	users := rg.Group("/users")
+	users.Use(middleware.JWTAuthMiddleware(jwtService))
+	{
+		users.GET("", userHandler.GetUsers)         // GET /api/v1/users
+		users.GET("/:id", userHandler.GetUserByID)   // GET /api/v1/users/:id
+		users.POST("", userHandler.CreateUser)       // POST /api/v1/users
+		users.PUT("/:id", userHandler.UpdateUser)    // PUT /api/v1/users
+		users.DELETE("/:id", userHandler.DeleteUser) // DELETE /api/v1/users/:id
 	}
 }
 

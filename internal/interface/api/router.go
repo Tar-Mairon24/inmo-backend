@@ -21,6 +21,7 @@ func SetupRouter(handlers *di.Handlers, services di.Services) *gin.Engine {
 	v1 := r.Group("/api/v1")
 	{
 		setupHealthRoutes(v1, handlers.HealthHandler)
+		setupAuthRoutes(v1, handlers.AuthHandler)
 		setupUserRoutes(v1, handlers.UserHandler, services.JwtService)
 		setupPropertyRoutes(v1, handlers.PropertyHandler, services.JwtService)
 	}
