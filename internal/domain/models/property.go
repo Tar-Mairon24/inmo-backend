@@ -40,7 +40,7 @@ type Property struct {
     UpdatedAt       time.Time          `gorm:"autoUpdateTime" json:"updated_at"`
     DeletedAt       *time.Time         `gorm:"index" json:"-"`
 	Owner           *User              `gorm:"foreignKey:OwnerID" json:"owner,omitempty"`
-	User            *User              `gorm:"foreignKey:UserID" json:"user,omitempty"`
+    Users           []User             `gorm:"many2many:user_properties" json:"users,omitempty"`
 }
 
 // PropertyResponse represents the public view of a property
@@ -172,10 +172,6 @@ func (p *Property) ToResponse() *PropertyResponse {
         Status:          p.Status,
         CreatedAt:       p.CreatedAt,
         UpdatedAt:       p.UpdatedAt,
-    }
-    
-    if p.User != nil && p.User.ID != 0 {
-        response.Agent = p.User.ToUserResponse()  // Convert User to UserResponse
     }
     
     return response
