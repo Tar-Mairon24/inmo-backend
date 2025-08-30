@@ -89,6 +89,12 @@ func (m *MockAuthUseCase) DeleteUser(id uint) error {
 	return args.Error(0)
 }
 
+// Add missing Logout method to satisfy ports.AuthUseCase interface
+func (m *MockAuthUseCase) Logout(userID string) error {
+	args := m.Called(userID)
+	return args.Error(0)
+}
+
 
 func TestUserLogin_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)

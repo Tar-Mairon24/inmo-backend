@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -18,15 +16,6 @@ import (
 type MockUserRepository struct {
 	mock.Mock
 }
-
-func TestMain(m *testing.M){
-	err := godotenv.Load("../../../.env")
-	if err != nil {
-		logrus.Error("Could not load .env: ", err)
-	}
-	m.Run()
-}
-
 
 func (m *MockUserRepository) Create(user *models.User) (*models.UserResponse, error) {
 	args := m.Called(user)
