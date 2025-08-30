@@ -17,6 +17,7 @@ type Container struct {
 	SqlDB      			*sql.DB
 	userRepo   			ports.UserRepository
 	propertyRepo    	ports.PropertyRepository
+	tokenRepo			ports.TokenRepository
 	userUsecase 		ports.UserUseCase
 	propertyUsecase  	ports.PropertyUseCase
 	jwtService 			ports.JWTService
@@ -41,12 +42,13 @@ func NewContainer() *Container {
 	// repos
 	container.userRepo = repository.NewUserRepository(container.SqlDB)
 	container.propertyRepo = repository.NewPropertyRepository(container.SqlDB)
+	container.tokenRepo = repository.NewTokenRepository(container.SqlDB)
 
 	// services
 	container.jwtService = service.NewJWTService(container.userRepo)
 
 	// usecases
-	container.userUsecase = usecase.NewUserUseCase(container.userRepo, container.jwtService)
+	container.userUsecase = usecase.NewUserUseCase(container.userRepo, container.tokenRepo, container.jwtService)
 	container.propertyUsecase = usecase.NewPropertyUseCase(container.propertyRepo)
 
 	// handlers

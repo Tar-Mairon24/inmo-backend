@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -18,5 +20,14 @@ type LoginResponse struct {
 
 type RefreshTokenData struct {
     Token string `json:"token" binding:"required"`
+}
+
+type RefreshToken struct {
+	ID 			string        `gorm:"primaryKey" json:"id"`
+	Token 		string        `gorm:"unique;not null" json:"token"`
+	UserID 		uint          `gorm:"index;not null" json:"user_id"`
+	ExpiresAt 	int64         `gorm:"not null" json:"expires_at"`
+	CreatedAt 	time.Time     `gorm:"autoCreateTime" json:"created_at"`
+	Revoked 	bool          `gorm:"not null" json:"revoked"`
 }
 
