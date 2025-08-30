@@ -11,14 +11,14 @@ import (
 )
 
 type AuthHandler struct {
-	jwtService  ports.JWTService
-	userUsecase ports.UserUseCase
+	jwtService   ports.JWTService
+	authUsecase  ports.AuthUseCase
 }
 
-func NewAuthHandler(jwtService ports.JWTService, userUsecase ports.UserUseCase) *AuthHandler {
+func NewAuthHandler(jwtService ports.JWTService, authUsecase ports.AuthUseCase) *AuthHandler {
 	return &AuthHandler{
 		jwtService:  jwtService,
-		userUsecase: userUsecase,
+		authUsecase: authUsecase,
 	}
 }
 
@@ -33,7 +33,7 @@ func (h *AuthHandler) UserLogin(c *gin.Context) {
 		return
 	}
 
-	loginResponse, err := h.userUsecase.Login(loginData.Email, loginData.Password)
+	loginResponse, err := h.authUsecase.Login(loginData.Email, loginData.Password)
 	if err != nil {
 		logrus.WithError(err).Error("Login failed")
 		c.JSON(http.StatusUnauthorized, gin.H{

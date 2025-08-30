@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/sirupsen/logrus"
 
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/domain/ports"
@@ -32,7 +33,13 @@ func (r *TokenRepository) SaveToken(token *models.RefreshToken) error {
 	}
 
 	_, err = r.db.Exec(sql, args...)
-	return err
+	if err != nil {
+		logrus.WithError(err).Error("Failed to save refresh token")
+		return err
+	}
+
+	logrus.Infof("Refresh token saved successfully: %s", token.ID)
+	return nil
 }
 
 func (r *TokenRepository) DeleteToken(tokenID string) error {
@@ -48,21 +55,21 @@ func (r *TokenRepository) DeleteToken(tokenID string) error {
 	return err
 }
 
-func (r *TokenRepository) GetByID(tokenID string) (*models.RefreshToken, error)  {
-	query := r.qb.Select("id", "user_id", "token", "expires_at", "created_at").
+func (r *TokenRepository) GetIDByToken(token string) (string, error)  {
+	query := r.qb.Select("id").
 		From("refresh_tokens").
-		Where(squirrel.Eq{"id": tokenID})
+		Where(squirrel.Eq{"token": token})
 
 	sql, args, err := query.ToSql()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	var token models.RefreshToken
-	err = r.db.QueryRow(sql, args...).Scan(&token.ID, &token.UserID, &token.ExpiresAt, &token.CreatedAt)
+	var refreshTokenID string
+	err = r.db.QueryRow(sql, args...).Scan(&refreshTokenID)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &token, nil
+	return refreshTokenID, nil
 }

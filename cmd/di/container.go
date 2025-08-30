@@ -20,6 +20,7 @@ type Container struct {
 	tokenRepo			ports.TokenRepository
 	userUsecase 		ports.UserUseCase
 	propertyUsecase  	ports.PropertyUseCase
+	authUsecase 		ports.AuthUseCase
 	jwtService 			ports.JWTService
 	userHandler 		*handler.UserHandler
 	propertyHandler 	*handler.PropertyHandler
@@ -54,7 +55,7 @@ func NewContainer() *Container {
 	// handlers
 	container.userHandler = handler.NewUserHandler(container.userUsecase)
 	container.propertyHandler = handler.NewPropertyHandler(container.propertyUsecase)
-	container.authHandler = handler.NewAuthHandler(container.jwtService, container.userUsecase)
+	container.authHandler = handler.NewAuthHandler(container.jwtService, container.authUsecase)
 	container.healthHandler = handler.NewHealthHandler()
 
 	logrus.Info("DI container initialized successfully")

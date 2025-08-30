@@ -3,7 +3,6 @@ package usecase
 import (
 	"errors"
 	"os"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -28,57 +27,6 @@ func NewUserUseCase(repo ports.UserRepository, tokenRepo ports.TokenRepository, 
 		tokenRepo: tokenRepo,
 		jwtService: jwtService,
 	}
-}
-
-func (uc *UserUseCase) Login(email string, password string) (*models.LoginResponse, error) {
-	if email == "" || password == "" {
-		logrus.Error("Email and password cannot be empty")
-		return nil, errors.New("email and password cannot be empty")
-	}
-	user, err := uc.repo.GetByEmail(email)
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get user by email")
-		return nil, errors.New("user not found")
-	}
-
-	if err := middleware.VerifyPassword(user.Password, password); err != nil {
-		logrus.WithError(err).Error("Password verification failed")
-		return nil, err
-	}
-
-	if err != nil {
-		logrus.WithError(err).Error("Failed to generate refresh token")
-		return nil, err
-	}
-
-	refreshToken, idToken, err := middleware.GenerateRefreshToken()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to generate refresh token")
-		return nil, err
-	}
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	err = uc.tokenRepo.SaveToken(&models.RefreshToken{
-		ID:        	idToken,
-		UserID:   	user.ID,
-		Token:    	refreshToken,
-		ExpiresAt: 	expiresAt.Unix(),
-		CreatedAt: 	time.Now(),
-	}) 
-	if err != nil {
-		logrus.WithError(err).Error("Failed to save refresh token")
-		return nil, err
-	}
-
-	token, err := uc.jwtService.GenerateToken(user)
-	if err != nil {
-		logrus.WithError(err).Error("Failed to generate token")
-		return nil, err
-	}
-
-	logrus.Infof("User %s login successful", user.Username)
-	return &models.LoginResponse{
-		User:  user.ToUserResponse(),
-		Token: token}, nil
 }
 
 func (uc *UserUseCase) GetAllUsers() ([]models.UserResponse, error) {
