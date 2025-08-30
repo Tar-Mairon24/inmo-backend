@@ -17,15 +17,13 @@ type UserUseCase struct {
 	jwtService  ports.JWTService
 }
 
-func NewUserUseCase(repo ports.UserRepository, tokenRepo ports.TokenRepository, jwtService ports.JWTService) *UserUseCase {
+func NewUserUseCase(repo ports.UserRepository) *UserUseCase {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		logrus.Fatal("JWT_SECRET environment variable is not set")
 	}
 	return &UserUseCase{
 		repo:      repo,
-		tokenRepo: tokenRepo,
-		jwtService: jwtService,
 	}
 }
 

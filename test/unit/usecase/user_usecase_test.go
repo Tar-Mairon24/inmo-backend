@@ -8,7 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/usecase"
@@ -20,10 +19,6 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
-type MockJWTService struct {
-	mock.Mock
-}
-
 func TestMain(m *testing.M){
 	err := godotenv.Load("../../../.env")
 	if err != nil {
@@ -32,24 +27,6 @@ func TestMain(m *testing.M){
 	m.Run()
 }
 
-// GenerateToken mocks the token generation for a user
-func (m *MockJWTService) GenerateToken(user *models.User) (string, error) {
-	args := m.Called(user)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockJWTService) ValidateToken(token string) (*models.JWTClaims, error) {
-	args := m.Called(token)
-	if claims, ok := args.Get(0).(*models.JWTClaims); ok {
-		return claims, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockJWTService) RefreshToken(token string) (string, error) {
-	args := m.Called(token)
-	return args.String(0), args.Error(1)
-}
 
 func (m *MockUserRepository) Create(user *models.User) (*models.UserResponse, error) {
 	args := m.Called(user)
@@ -96,8 +73,7 @@ func (m *MockUserRepository) GetByEmail(email string) (*models.User, error) {
 func TestUserUseCase_GetAllUsers(t *testing.T) {
 	t.Run("should return all users successfully", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		users := []models.UserResponse{
 			{ID: 1, Username: "user1", Email: "user1@example.com"},
@@ -115,8 +91,7 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 
 	t.Run("should return error when repository fails", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		mockRepo.On("GetAll").Return(nil, errors.New("repo error"))
 
@@ -131,8 +106,7 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 func TestUserUseCase_GetUserByID(t *testing.T) {
 	t.Run("should return user response when user exists", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		expectedUser := &models.UserResponse{
 			ID:       1,
@@ -151,8 +125,7 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 
 	t.Run("should return error when user not found", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		mockRepo.On("GetByID", uint(2)).Return(nil, errors.New("user not found"))
 
@@ -167,8 +140,7 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 func TestUserUseCase_CreateUser(t *testing.T) {
 	t.Run("should return error when password is empty", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		user := &models.User{
 			Username: "testuser",
@@ -182,11 +154,9 @@ func TestUserUseCase_CreateUser(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, "password cannot be empty", err.Error())
 	})
-
 	t.Run("should return error when username is empty", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		user := &models.User{
 			Username: "",
@@ -203,8 +173,7 @@ func TestUserUseCase_CreateUser(t *testing.T) {
 
 	t.Run("should return error when email is empty", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		user := &models.User{
 			Username: "testuser",
@@ -221,8 +190,7 @@ func TestUserUseCase_CreateUser(t *testing.T) {
 
 	t.Run("should create user successfully", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		user := &models.User{
 			Username: "testuser",
@@ -259,8 +227,7 @@ func TestUserUseCase_CreateUser(t *testing.T) {
 func TestUserUseCase_UpdateUser(t *testing.T) {
 	t.Run("should update user successfully", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		user := &models.User{
 			ID:       1,
@@ -285,8 +252,7 @@ func TestUserUseCase_UpdateUser(t *testing.T) {
 
 	t.Run("should return error when update fails", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		user := &models.User{
 			ID:       2,
@@ -308,8 +274,7 @@ func TestUserUseCase_UpdateUser(t *testing.T) {
 func TestUserUseCase_DeleteUser(t *testing.T) {
 	t.Run("should delete user successfully", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		mockRepo.On("Delete", uint(1)).Return(nil)
 
@@ -321,8 +286,7 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 
 	t.Run("should return error when delete fails", func(t *testing.T) {
 		mockRepo := &MockUserRepository{}
-		mockJWT := &MockJWTService{}
-		uc := usecase.NewUserUseCase(mockRepo, mockJWT)
+		uc := usecase.NewUserUseCase(mockRepo)
 
 		mockRepo.On("Delete", uint(2)).Return(errors.New("delete failed"))
 

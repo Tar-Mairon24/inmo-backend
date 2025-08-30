@@ -15,13 +15,17 @@ import (
 
 type Container struct {
 	SqlDB      			*sql.DB
+
 	userRepo   			ports.UserRepository
 	propertyRepo    	ports.PropertyRepository
 	tokenRepo			ports.TokenRepository
+
 	userUsecase 		ports.UserUseCase
 	propertyUsecase  	ports.PropertyUseCase
 	authUsecase 		ports.AuthUseCase
+
 	jwtService 			ports.JWTService
+	
 	userHandler 		*handler.UserHandler
 	propertyHandler 	*handler.PropertyHandler
 	healthHandler 		*handler.HealthHandler
@@ -49,7 +53,7 @@ func NewContainer() *Container {
 	container.jwtService = service.NewJWTService(container.userRepo)
 
 	// usecases
-	container.userUsecase = usecase.NewUserUseCase(container.userRepo, container.tokenRepo, container.jwtService)
+	container.userUsecase = usecase.NewUserUseCase(container.userRepo)
 	container.propertyUsecase = usecase.NewPropertyUseCase(container.propertyRepo)
 
 	// handlers
