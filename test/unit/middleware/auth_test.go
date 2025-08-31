@@ -24,6 +24,15 @@ type mockJWTService struct {
 	validateFunc func(token string) (*MockClaims, error)
 }
 
+// Implement GetUserIDFromClaims to satisfy ports.JWTService
+func (m *mockJWTService) GetUserIDFromClaims(claimsStr string) (uint, error) {
+	parsedID, err := strconv.ParseUint(claimsStr, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return uint(parsedID), nil
+}
+
 // Implement ValidateToken to satisfy ports.JWTService
 func (m *mockJWTService) ValidateToken(token string) (jwtResponse *models.JWTClaims, err error) {
 	claims, err := m.validateFunc(token)

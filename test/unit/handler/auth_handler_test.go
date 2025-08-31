@@ -41,6 +41,12 @@ func (m *MockJWTService) ValidateToken(token string) (*models.JWTClaims, error) 
 	return nil, args.Error(1)
 }
 
+// Add missing GetUserIDFromClaims method to satisfy ports.JWTService interface
+func (m *MockJWTService) GetUserIDFromClaims(claims string) (uint, error) {
+	args := m.Called(claims)
+	return args.Get(0).(uint), args.Error(1)
+}
+
 // MockAuthUseCase is a mock implementation of AuthUseCase
 type MockAuthUseCase struct {
 	mock.Mock
@@ -90,9 +96,18 @@ func (m *MockAuthUseCase) DeleteUser(id uint) error {
 }
 
 // Add missing Logout method to satisfy ports.AuthUseCase interface
-func (m *MockAuthUseCase) Logout(userID string) error {
+func (m *MockAuthUseCase) Logout(userID uint) error {
 	args := m.Called(userID)
 	return args.Error(0)
+}
+
+// Add missing RefreshToken method to satisfy ports.AuthUseCase interface
+func (m *MockAuthUseCase) RefreshToken(data models.RefreshTokenData) (*models.RefreshTokenData, error) {
+	args := m.Called(data)
+	if resp, ok := args.Get(0).(*models.RefreshTokenData); ok {
+		return resp, args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 

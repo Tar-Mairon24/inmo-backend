@@ -23,6 +23,20 @@ type MockTokenRepository struct {
 	mock.Mock
 }
 
+// Implement missing method to satisfy ports.TokenRepository
+func (m *MockTokenRepository) GetTokenIDByUserID(userID uint) (string, error) {
+	args := m.Called(userID)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockTokenRepository) GetTokenByUserID(userID uint) (*models.RefreshToken, error) {
+	args := m.Called(userID)
+	if token, ok := args.Get(0).(*models.RefreshToken); ok {
+		return token, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func TestMain(m *testing.M){
 	err := godotenv.Load("../../../.env")
 	if err != nil {
@@ -44,6 +58,30 @@ func (m *MockTokenRepository) GetIDByToken(token string) (string, error) {
 func (m *MockTokenRepository) DeleteToken(token string) error {
 	args := m.Called(token)
 	return args.Error(0)
+}
+
+func (m *MockJWTService) GenerateToken(user *models.User) (string, error) {
+	args := m.Called(user)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockJWTService) ValidateToken(token string) (*models.JWTClaims, error) {
+	args := m.Called(token)
+	if claims, ok := args.Get(0).(*models.JWTClaims); ok {
+		return claims, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockJWTService) RefreshToken(token string) (string, error) {
+	args := m.Called(token)
+	return args.String(0), args.Error(1)
+}
+
+// Implement missing method to satisfy ports.JWTService
+func (m *MockJWTService) GetUserIDFromClaims(claims string) (uint, error) {
+	args := m.Called(claims)
+	return args.Get(0).(uint), args.Error(1)
 }
 
 func TestAuthUseCase_Login_Success(t *testing.T) {
@@ -191,22 +229,6 @@ func TestAuthUseCase_Login_GenerateTokenFailed(t *testing.T) {
 	assert.Equal(t, "jwt error", err.Error())
 }
 
-func (m *MockJWTService) GenerateToken(user *models.User) (string, error) {
-	args := m.Called(user)
-	return args.String(0), args.Error(1)
-}
 
-func (m *MockJWTService) ValidateToken(token string) (*models.JWTClaims, error) {
-	args := m.Called(token)
-	if claims, ok := args.Get(0).(*models.JWTClaims); ok {
-		return claims, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockJWTService) RefreshToken(token string) (string, error) {
-	args := m.Called(token)
-	return args.String(0), args.Error(1)
-}
 
 
