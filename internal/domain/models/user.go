@@ -14,11 +14,6 @@ type User struct {
 	RefreshTokens []RefreshToken `gorm:"foreignKey:UserID" json:"-"` // Exclude from JSON responses
 }
 
-type UserLoginData struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
 type UserResponse struct {
 	ID        uint   `json:"id"`
 	Username  string `json:"username"`

@@ -55,10 +55,10 @@ func (r *TokenRepository) DeleteToken(tokenID string) error {
 	return err
 }
 
-func (r *TokenRepository) GetIDByToken(token string) (string, error)  {
+func (r *TokenRepository) GetTokenIDByUserID(userID uint) (string, error)  {
 	query := r.qb.Select("id").
 		From("refresh_tokens").
-		Where(squirrel.Eq{"token": token})
+		Where(squirrel.Eq{"user_id": userID})
 
 	sql, args, err := query.ToSql()
 	if err != nil {
@@ -72,4 +72,25 @@ func (r *TokenRepository) GetIDByToken(token string) (string, error)  {
 	}
 
 	return refreshTokenID, nil
+}
+
+func (r *TokenRepository) GetTokenByUserID(userID uint) (*models.RefreshToken, error) {
+	query := r.qb.Select("id", "user_id", "token", "expires_at", "created_at").
+		From("refresh_tokens").
+		Where(squirrel.Eq{"user_id": userID})
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to build SQL query")
+		return nil, err
+	}
+
+	var token models.RefreshToken
+	err = r.db.QueryRow(sql, args...).Scan(&token.ID, &token.UserID, &token.Token, &token.ExpiresAt, &token.CreatedAt)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to execute query or scan result")
+		return nil, err
+	}
+
+	return &token, nil
 }

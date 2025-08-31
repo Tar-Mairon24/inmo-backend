@@ -135,3 +135,11 @@ func (j *JWTService) RefreshToken(tokenString string) (string, error) {
 	logrus.Infof("Token refreshed successfully for user %d", claims.ID)
 	return newToken, nil
 }
+
+func (j *JWTService) GetUserIDFromClaims(tokenString string) (uint, error) {
+	claims, err := j.ValidateToken(tokenString)
+	if err != nil {
+		return 0, err
+	}
+	return claims.ID, nil
+}

@@ -23,7 +23,7 @@ func NewAuthHandler(jwtService ports.JWTService, authUsecase ports.AuthUseCase) 
 }
 
 func (h *AuthHandler) UserLogin(c *gin.Context) {
-	var loginData = models.UserLoginData{}
+	var loginData = models.LoginData{}
 	if err := c.ShouldBindJSON(&loginData); err != nil {
 		logrus.WithError(err).Error("Invalid login data")
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -50,6 +50,32 @@ func (h *AuthHandler) UserLogin(c *gin.Context) {
 	})
 }
 
+func (h *AuthHandler) UserLogout(c *gin.Context) {
+	var logoutData = models.LogoutData{}
+	if err := c.ShouldBindJSON(&logoutData); err != nil {
+		logrus.WithError(err).Error("Invalid logout data")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request",
+			"message": "Failed to parse logout data",
+		})
+		return
+	}
+
+	if err := h.authUsecase.Logout(logoutData.UserID); err != nil {
+		logrus.WithError(err).Error("Logout failed")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Logout successful",
+	})
+}
+
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var refreshTokenData = models.RefreshTokenData{}
 	if err := c.ShouldBindJSON(&refreshTokenData); err != nil {
@@ -61,7 +87,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	newToken, err := h.jwtService.RefreshToken(refreshTokenData.Token)
+	newToken, err := h.authUsecase.RefreshToken(refreshTokenData)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to refresh token")
 		c.JSON(http.StatusUnauthorized, gin.H{
