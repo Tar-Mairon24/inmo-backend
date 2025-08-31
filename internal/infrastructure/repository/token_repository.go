@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/sirupsen/logrus"
@@ -25,7 +26,7 @@ func NewTokenRepository(db *sql.DB) ports.TokenRepository {
 func (r *TokenRepository) SaveToken(token *models.RefreshToken) error {
 	query := r.qb.Insert("refresh_tokens").
 		Columns("id", "user_id", "token", "expires_at", "created_at").
-		Values(token.ID, token.UserID, token.ExpiresAt, token.CreatedAt)
+		Values(token.ID, token.UserID, token.Token, token.ExpiresAt, time.Now())
 
 	sql, args, err := query.ToSql()
 	if err != nil {

@@ -34,7 +34,7 @@ type RefreshToken struct {
 	UserID    uint      `gorm:"index;not null" json:"user_id"`
 	ExpiresAt int64     `gorm:"not null" json:"expires_at"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
-	Revoked   bool      `gorm:"not null" json:"revoked"`
+	Revoked   bool      `gorm:"default:false" json:"revoked"`
 }
 
 type RefreshTokenData struct {

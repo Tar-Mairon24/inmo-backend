@@ -247,5 +247,3 @@ func (r *UserRepository) Delete(id uint) error {
 	logrus.Infof("User with ID: %d deleted successfully", id)
 	return nil
 }
-
-
