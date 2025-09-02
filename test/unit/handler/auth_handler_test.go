@@ -57,7 +57,6 @@ func (m *MockAuthUseCase) Login(email, password string) (*models.LoginResponse, 
 		return LoginResp, args.Error(1)
 	}
 	return nil, args.Error(1)
-
 }
 func (m *MockAuthUseCase) GetAllUsers() ([]models.UserResponse, error) {
 	args := m.Called()
