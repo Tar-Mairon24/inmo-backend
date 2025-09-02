@@ -35,6 +35,14 @@ func (m *MockUserRepository) ConsultPassword(username string) (string, error) {
 	args := m.Called(username)
 	return args.String(0), args.Error(1)
 }
+
+func (m *MockUserRepository) GetByEmail(email string) (*models.User, error) {
+	args := m.Called(email)
+	if user, ok := args.Get(0).(*models.User); ok {
+		return user, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
 func (m *MockUserRepository) GetAll() ([]models.UserResponse, error) {
     args := m.Called()
     if users, ok := args.Get(0).([]models.UserResponse); ok {
@@ -53,11 +61,7 @@ func (m *MockUserRepository) Delete(userID uint) error {
 	args := m.Called(userID)
 	return args.Error(0)
 }
-func (m *MockUserRepository) GetByEmail(email string) (*models.User, error) {
-	args := m.Called(email)
-	user, _ := args.Get(0).(*models.User)
-	return user, args.Error(1)
-}
+
 
 func TestUserUseCase_GetAllUsers(t *testing.T) {
 	t.Run("should return all users successfully", func(t *testing.T) {

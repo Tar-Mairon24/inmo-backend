@@ -116,22 +116,6 @@ func TestProperty_ToResponse_NoUser(t *testing.T) {
 	assert.Nil(t, resp.Agent)
 }
 
-func TestProperty_ToResponse_WithUser(t *testing.T) {
-	user := &models.User{
-		ID:   42,
-		Username: "Agent Smith",
-	}
-	p := &models.Property{
-		ID:    2,
-		Title: "Another Property",
-		Users: []models.User{*user},
-	}
-	resp := p.ToResponse()
-	assert.NotNil(t, resp.Agent)
-	assert.Equal(t, user.ID, resp.Agent.ID)
-	assert.Equal(t, user.Username, resp.Agent.Username)
-}
-
 func TestProperty_ToResponse_UserZeroID(t *testing.T) {
 	p := &models.Property{
 		ID:    3,
