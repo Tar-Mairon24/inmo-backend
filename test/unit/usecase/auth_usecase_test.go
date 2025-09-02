@@ -134,7 +134,7 @@ func TestLogin_Success(t *testing.T) {
 	password := "testPassword"
 	hasedPassword, err := middleware.HashPassword(password)
 	if err != nil {
-
+		t.Fatal("Failed to hash password:", err)
 	}
 	user := &models.User{
 		ID:       1,

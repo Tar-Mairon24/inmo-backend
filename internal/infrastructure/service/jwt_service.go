@@ -26,7 +26,7 @@ func NewJWTService(userRepo ports.UserRepository) *JWTService {
 	}
 	expiration := 24 * time.Hour
 	if envExp := os.Getenv("JWT_EXPIRATION_HOURS"); envExp != "" {
-		if hours, err := time.ParseDuration(envExp + "s"); err == nil {
+		if hours, err := time.ParseDuration(envExp + "h"); err == nil {
 			logrus.Infof("Using custom JWT expiration: %s", hours)
 			expiration = hours
 		}

@@ -86,11 +86,15 @@ func (uc *authUseCase) Logout(userID uint) error {
 	}
 
 	uc.tokenRepo.DeleteToken(tokenResponseID)
-	return uc.tokenRepo.DeleteToken(tokenResponseID)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to delete token")
+		return err
+	}
+	return nil
 }
 
 func (uc *authUseCase) RefreshToken(data models.RefreshTokenData) (*models.RefreshTokenData, error) {
-	if( data.JwtToken == "" || data.RefreshToken == "") {
+	if data.JwtToken == "" || data.RefreshToken == "" {
 		err := errors.New("JWT token and refresh token cannot be empty")
 		return nil, err
 	}
