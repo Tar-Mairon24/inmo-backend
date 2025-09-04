@@ -85,7 +85,7 @@ func (uc *authUseCase) Logout(userID uint) error {
 		return err
 	}
 
-	uc.tokenRepo.DeleteToken(tokenResponseID)
+	err = uc.tokenRepo.DeleteToken(tokenResponseID)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to delete token")
 		return err
