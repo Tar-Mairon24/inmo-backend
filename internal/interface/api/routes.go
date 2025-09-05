@@ -9,7 +9,6 @@ import (
 )
 
 func setupAuthRoutes(rg *gin.RouterGroup, authHandler *handler.AuthHandler) {
-
 	auth := rg.Group("/auth")
 	{
 		auth.POST("/login", authHandler.UserLogin)   // POST /api/v1/auth/login
@@ -18,7 +17,6 @@ func setupAuthRoutes(rg *gin.RouterGroup, authHandler *handler.AuthHandler) {
 }
 
 func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtService ports.JWTService) {
-
 	users := rg.Group("/users")
 	users.Use(middleware.JWTAuthMiddleware(jwtService))
 	{

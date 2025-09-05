@@ -42,7 +42,7 @@ func (h *AuthHandler) UserLogin(c *gin.Context) {
 		})
 		return
 	}
-	logrus.Infof("User %s logged in succesfully", loginResponse.User.Username)
+	logrus.Infof("User %s logged in successfully", loginResponse.User.Username)
 	c.SetCookie("refresh_token", loginResponse.RefreshToken, 3600*24*7, "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

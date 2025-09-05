@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -33,7 +34,8 @@ func (r *TokenRepository) SaveToken(token *models.RefreshToken) error {
 		return err
 	}
 
-	_, err = r.db.Exec(sql, args...)
+	ctx := context.Background()
+	_, err = r.db.ExecContext(ctx, sql, args...)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to save refresh token")
 		return err
@@ -52,7 +54,8 @@ func (r *TokenRepository) DeleteToken(tokenID string) error {
 		return err
 	}
 
-	_, err = r.db.Exec(sql, args...)
+	ctx := context.Background()
+	_, err = r.db.ExecContext(ctx, sql, args...)
 	return err
 }
 
@@ -67,7 +70,8 @@ func (r *TokenRepository) GetTokenIDByUserID(userID uint) (string, error)  {
 	}
 
 	var refreshTokenID string
-	err = r.db.QueryRow(sql, args...).Scan(&refreshTokenID)
+	ctx := context.Background()
+	err = r.db.QueryRowContext(ctx, sql, args...).Scan(&refreshTokenID)
 	if err != nil {
 		return "", err
 	}
@@ -87,7 +91,8 @@ func (r *TokenRepository) GetTokenByUserID(userID uint) (*models.RefreshToken, e
 	}
 
 	var token models.RefreshToken
-	err = r.db.QueryRow(sql, args...).Scan(&token.ID, &token.UserID, &token.Token, &token.ExpiresAt, &token.CreatedAt)
+	ctx := context.Background()
+	err = r.db.QueryRowContext(ctx, sql, args...).Scan(&token.ID, &token.UserID, &token.Token, &token.ExpiresAt, &token.CreatedAt)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to execute query or scan result")
 		return nil, err

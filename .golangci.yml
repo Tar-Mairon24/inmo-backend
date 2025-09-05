@@ -19,6 +19,27 @@ linters:
     - dupl           # Code clone detection
     - goconst        # Find repeated strings that could be constants
 
+    # Security & Safety
+    - gosec          # Security issues scanner
+    - bodyclose      # Check HTTP response body is closed
+    - noctx          # Find sending http request without context.Context
+    
+    # Performance
+    - nolintlint     # Reports ill-formed or insufficient nolint directives
+
+        # Style & Consistency
+    - whitespace     # Detect leading/trailing whitespace
+    #- revive         # Fast, configurable, extensible replacement for golint
+    - misspell       # Finds commonly misspelled English words
+
+formatters:
+  settings:
+    golines:
+      # Shorten single-line comments.
+      # Default: false
+      shorten-comments: true
+      # Default: true
+      reformat-tags: false
 
 run:
   tests: false 

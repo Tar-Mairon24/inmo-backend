@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -37,7 +38,8 @@ func (r *UserRepository) ConsultPassword(email string) (string, error) {
 	}
 
 	var password string
-	err = r.db.QueryRow(sqlStr, args...).Scan(&password)
+	ctx := context.Background()
+	err = r.db.QueryRowContext(ctx, sqlStr, args...).Scan(&password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			logrus.Warn("No user found with the provided email")
@@ -63,7 +65,8 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 	}
 
 	var User models.User
-	err = r.db.QueryRow(sqlStr, args...).Scan(
+	ctx := context.Background()
+	err = r.db.QueryRowContext(ctx, sqlStr, args...).Scan(
 		&User.ID, &User.Username, &User.Email, &User.Password, &User.CreatedAt, &User.UpdatedAt,
 	)
 	if err != nil {
@@ -90,7 +93,8 @@ func (r *UserRepository) Create(user *models.User) (*models.UserResponse, error)
 		return nil, err
 	}
 
-	result, err := r.db.Exec(sql, args...)
+	ctx := context.Background()
+	result, err := r.db.ExecContext(ctx, sql, args...)
 	if err != nil {
         logrus.WithError(err).Error("Failed to execute query to create user")
 		return nil, err
@@ -102,6 +106,9 @@ func (r *UserRepository) Create(user *models.User) (*models.UserResponse, error)
 		return nil, err
 	}
 
+	if id < 0 || id > int64(^uint(0)>>1) {
+		return nil, errors.New("invalid ID: integer overflow")
+	}
 	user.ID = uint(id)
     logrus.Infof("User created successfully with ID: %d", user.ID)
 
@@ -125,7 +132,8 @@ func (r *UserRepository) GetAll() ([]models.UserResponse, error) {
 		return nil, err
 	}
 
-	rows, err := r.db.Query(sql, args...)
+	ctx := context.Background()
+	rows, err := r.db.QueryContext(ctx, sql, args...)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to execute query to get all users")
 		return nil, err
@@ -168,7 +176,8 @@ func (r *UserRepository) GetByID(id uint) (*models.UserResponse, error) {
 	}
 
 	var user models.UserResponse
-	err = r.db.QueryRow(sqlStr, args...).Scan(
+	ctx := context.Background()
+	err = r.db.QueryRowContext(ctx, sqlStr, args...).Scan(
 		&user.ID, &user.Username, &user.Email,
 		&user.CreatedAt, &user.UpdatedAt,
 	)
@@ -198,7 +207,8 @@ func (r *UserRepository) Update(user *models.User) (*models.UserResponse, error)
 		return nil, err
 	}
 
-	result, err := r.db.Exec(sql, args...)
+	ctx := context.Background()
+	result, err := r.db.ExecContext(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +237,8 @@ func (r *UserRepository) Delete(id uint) error {
 		return err
 	}
 
-	result, err := r.db.Exec(sql, args...)
+	ctx := context.Background()
+	result, err := r.db.ExecContext(ctx, sql, args...)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to execute query for deleting user")
 		return err

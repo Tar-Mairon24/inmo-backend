@@ -97,7 +97,6 @@ func (j *JWTService) RefreshToken(tokenString string) (string, error) {
 	logrus.Debug("Refreshing JWT token: " + tokenString)
 	claims, err := j.ValidateToken(tokenString)
 	if err != nil {
-
 		parsedToken, parseErr := jwt.ParseWithClaims(tokenString, &models.JWTClaims{}, func(token *jwt.Token) (any, error) {
             return j.secret, nil
         }, jwt.WithoutClaimsValidation())

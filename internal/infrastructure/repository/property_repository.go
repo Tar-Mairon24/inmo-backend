@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -34,7 +35,8 @@ func (r *PropertyRepository) GetAll() ([]models.PropertyResponse, error) {
 		logrus.WithError(err).Error("Failed to build SQL query for getting all properties")
 		return nil, err
 	}
-	rows, err := r.db.Query(sqlStr, args...)
+	ctx := context.Background()
+	rows, err := r.db.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to execute query for getting all properties")
 		return nil, err
@@ -117,7 +119,8 @@ func (r *PropertyRepository) GetByID(id uint) (*models.PropertyResponse, error) 
 	}
 
 	var property models.Property
-	err = r.db.QueryRow(sqlStr, args...).Scan(
+	ctx := context.Background()
+	err = r.db.QueryRowContext(ctx, sqlStr, args...).Scan(
 		&property.ID,
 		&property.Title,
 		&property.ListingDate,
@@ -187,7 +190,8 @@ func (r *PropertyRepository) Create(property *models.Property) (*models.Property
         return nil, err
     }
 
-    result, err := r.db.Exec(sqlStr, args...)
+	ctx := context.Background()
+    result, err := r.db.ExecContext(ctx, sqlStr, args...)
     if err != nil {
         logrus.WithError(err).Error("Failed to execute query for creating a new property")
         return nil, err
@@ -199,6 +203,9 @@ func (r *PropertyRepository) Create(property *models.Property) (*models.Property
         return nil, err
     }
 
+	if id < 0 || id > int64(^uint(0)>>1) {
+		return nil, errors.New("invalid ID: integer overflow")
+	}
     property.ID = uint(id)
 	property.CreatedAt = time.Now()
 	property.UpdatedAt = time.Now()
@@ -245,7 +252,8 @@ func (r *PropertyRepository) Update(property *models.Property) (*models.Property
 		return nil, err
 	}
 
-	result, err := r.db.Exec(sqlStr, args...)
+	ctx := context.Background()
+	result, err := r.db.ExecContext(ctx, sqlStr, args...)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to execute query for updating a property")
 		return nil, err
@@ -278,7 +286,8 @@ func (r *PropertyRepository) Delete(id uint) error {
 		return err
 	}
 
-	result, err := r.db.Exec(sqlStr, args...)
+	ctx := context.Background()
+	result, err := r.db.ExecContext(ctx, sqlStr, args...)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to execute query for deleting a property")
 		return err

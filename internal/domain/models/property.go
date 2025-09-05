@@ -7,6 +7,7 @@ import (
     "time"
 )
 
+// Property represents a real estate property in the system
 type Property struct {
     ID              uint               `gorm:"primaryKey" json:"id"`
     Title           string             `gorm:"not null;size:255" json:"title"`
@@ -89,7 +90,6 @@ type PropertyCard struct {
     CreatedAt       time.Time       `json:"created_at"`
 }
 
-// Enums for better type safety
 type TransactionType string
 
 const (

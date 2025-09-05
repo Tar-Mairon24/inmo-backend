@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"errors"
-	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -13,15 +12,9 @@ import (
 
 type UserUseCase struct {
 	repo        ports.UserRepository
-	tokenRepo   ports.TokenRepository
-	jwtService  ports.JWTService
 }
 
 func NewUserUseCase(repo ports.UserRepository) *UserUseCase {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		logrus.Fatal("JWT_SECRET environment variable is not set")
-	}
 	return &UserUseCase{
 		repo:      repo,
 	}
