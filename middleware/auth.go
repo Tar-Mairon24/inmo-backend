@@ -1,6 +1,10 @@
 package middleware
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"net/http"
 	"strings"
 
@@ -53,4 +57,16 @@ func JWTAuthMiddleware(jwtService ports.JWTService) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func GenerateRefreshToken() (string, string, error) {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", "", err
+	}
+	token := base64.StdEncoding.EncodeToString(b)
+	hash := sha256.Sum256([]byte(token))
+	id := hex.EncodeToString(hash[:])
+	return token, id, nil
 }

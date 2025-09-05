@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"errors"
-	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -13,46 +12,12 @@ import (
 
 type UserUseCase struct {
 	repo        ports.UserRepository
-	jwtService  ports.JWTService
 }
 
-func NewUserUseCase(repo ports.UserRepository, jwtService ports.JWTService) *UserUseCase {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		logrus.Fatal("JWT_SECRET environment variable is not set")
-	}
+func NewUserUseCase(repo ports.UserRepository) *UserUseCase {
 	return &UserUseCase{
 		repo:      repo,
-		jwtService: jwtService,
 	}
-}
-
-func (uc *UserUseCase) Login(email string, password string) (*models.LoginResponse, error) {
-	if email == "" || password == "" {
-		logrus.Error("Email and password cannot be empty")
-		return nil, errors.New("email and password cannot be empty")
-	}
-	user, err := uc.repo.GetByEmail(email)
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get user by email")
-		return nil, errors.New("user not found")
-	}
-
-	if err := middleware.VerifyPassword(user.Password, password); err != nil {
-		logrus.WithError(err).Error("Password verification failed")
-		return nil, err
-	}
-
-	token, err := uc.jwtService.GenerateToken(user)
-	if err != nil {
-		logrus.WithError(err).Error("Failed to generate token")
-		return nil, err
-	}
-
-	logrus.Infof("User %s login successful", user.Username)
-	return &models.LoginResponse{
-		User:  user.ToUserResponse(),
-		Token: token}, nil
 }
 
 func (uc *UserUseCase) GetAllUsers() ([]models.UserResponse, error) {

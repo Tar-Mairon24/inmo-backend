@@ -5,21 +5,29 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/domain/ports"
 	"inmo-backend/internal/infrastructure/db"
 	"inmo-backend/internal/infrastructure/repository"
 	"inmo-backend/internal/infrastructure/service"
 	"inmo-backend/internal/interface/api/handler"
 	"inmo-backend/internal/usecase"
+	"inmo-backend/middleware"
 )
 
 type Container struct {
 	SqlDB      			*sql.DB
+
 	userRepo   			ports.UserRepository
 	propertyRepo    	ports.PropertyRepository
+	tokenRepo			ports.TokenRepository
+
 	userUsecase 		ports.UserUseCase
 	propertyUsecase  	ports.PropertyUseCase
+	authUsecase 		ports.AuthUseCase
+
 	jwtService 			ports.JWTService
+	
 	userHandler 		*handler.UserHandler
 	propertyHandler 	*handler.PropertyHandler
 	healthHandler 		*handler.HealthHandler
@@ -41,19 +49,26 @@ func NewContainer() *Container {
 	// repos
 	container.userRepo = repository.NewUserRepository(container.SqlDB)
 	container.propertyRepo = repository.NewPropertyRepository(container.SqlDB)
+	container.tokenRepo = repository.NewTokenRepository(container.SqlDB)
 
 	// services
 	container.jwtService = service.NewJWTService(container.userRepo)
 
 	// usecases
-	container.userUsecase = usecase.NewUserUseCase(container.userRepo, container.jwtService)
+	container.userUsecase = usecase.NewUserUseCase(container.userRepo)
 	container.propertyUsecase = usecase.NewPropertyUseCase(container.propertyRepo)
+	container.authUsecase = usecase.NewAuthUseCase(container.userRepo, container.tokenRepo, container.jwtService)
 
 	// handlers
 	container.userHandler = handler.NewUserHandler(container.userUsecase)
 	container.propertyHandler = handler.NewPropertyHandler(container.propertyUsecase)
-	container.authHandler = handler.NewAuthHandler(container.jwtService, container.userUsecase)
+	container.authHandler = handler.NewAuthHandler(container.jwtService, container.authUsecase)
 	container.healthHandler = handler.NewHealthHandler()
+
+	err := container.seedUser()
+	if err != nil {
+		logrus.WithError(err).Fatal("Failed to seed initial user")
+	}
 
 	logrus.Info("DI container initialized successfully")
 	return container
@@ -83,4 +98,31 @@ func (c *Container) GetServices() Services{
 	return Services{
 		JwtService: c.jwtService,
 	}
+}
+
+func (c *Container) seedUser() error {
+	users, err := c.userRepo.GetAll()
+	if err != nil {
+		return err
+	}
+	if len(users) == 0 {
+		password, err := middleware.HashPassword("12345678")
+		if err != nil {
+			return err
+		}
+		user := models.User{
+			Username: "tarmairon",
+			Email:    "tarmairon@prueba.com",
+			Password: password,
+		}
+		_, err = c.userRepo.Create(&user)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to seed initial user")
+			return err
+		}
+		logrus.Info("Seeded initial user successfully")
+	}
+	logrus.Info("Users already exist, skipping seeding")
+
+	return nil
 }

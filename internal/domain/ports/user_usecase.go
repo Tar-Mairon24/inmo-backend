@@ -8,5 +8,4 @@ type UserUseCase interface {
 	CreateUser(user *models.User) (*models.UserResponse, error)
 	UpdateUser(user *models.User) (*models.UserResponse, error)
 	DeleteUser(id uint) error
-	Login(email string, password string) (*models.LoginResponse, error)
 }

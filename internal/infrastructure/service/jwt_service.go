@@ -26,7 +26,7 @@ func NewJWTService(userRepo ports.UserRepository) *JWTService {
 	}
 	expiration := 24 * time.Hour
 	if envExp := os.Getenv("JWT_EXPIRATION_HOURS"); envExp != "" {
-		if hours, err := time.ParseDuration(envExp + "s"); err == nil {
+		if hours, err := time.ParseDuration(envExp + "h"); err == nil {
 			logrus.Infof("Using custom JWT expiration: %s", hours)
 			expiration = hours
 		}
@@ -97,7 +97,6 @@ func (j *JWTService) RefreshToken(tokenString string) (string, error) {
 	logrus.Debug("Refreshing JWT token: " + tokenString)
 	claims, err := j.ValidateToken(tokenString)
 	if err != nil {
-
 		parsedToken, parseErr := jwt.ParseWithClaims(tokenString, &models.JWTClaims{}, func(token *jwt.Token) (any, error) {
             return j.secret, nil
         }, jwt.WithoutClaimsValidation())
@@ -134,4 +133,12 @@ func (j *JWTService) RefreshToken(tokenString string) (string, error) {
 
 	logrus.Infof("Token refreshed successfully for user %d", claims.ID)
 	return newToken, nil
+}
+
+func (j *JWTService) GetUserIDFromClaims(tokenString string) (uint, error) {
+	claims, err := j.ValidateToken(tokenString)
+	if err != nil {
+		return 0, err
+	}
+	return claims.ID, nil
 }
