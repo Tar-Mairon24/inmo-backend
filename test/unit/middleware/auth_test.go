@@ -78,7 +78,24 @@ func TestJWTAuthMiddleware_MissingAuthHeader(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Contains(t, w.Body.String(), "Authorization header required")
+	assert.Contains(t, w.Body.String(), "Missing or invalid token")
+}
+
+func TestJwtAuthMiddleware_MissingCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	mockService := &mockJWTService{}
+	r.Use(middleware.JWTAuthMiddleware(mockService))
+	r.GET("/test", func(c *gin.Context) {
+		c.String(200, "ok")
+	})
+
+	req, _ := http.NewRequest("GET", "/test", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Contains(t, w.Body.String(), "Missing or invalid token")
 }
 
 func TestJWTAuthMiddleware_InvalidAuthHeaderFormat(t *testing.T) {
@@ -96,7 +113,7 @@ func TestJWTAuthMiddleware_InvalidAuthHeaderFormat(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid authorization header format")
+	assert.Contains(t, w.Body.String(), "Missing or invalid token")
 }
 
 func TestJWTAuthMiddleware_InvalidToken(t *testing.T) {
@@ -104,7 +121,7 @@ func TestJWTAuthMiddleware_InvalidToken(t *testing.T) {
 	r := gin.New()
 	mockService := &mockJWTService{
 		validateFunc: func(token string) (*MockClaims, error) {
-			return nil, errors.New("invalid token")
+			return nil, errors.New("Invalid token or expired token")
 		},
 	}
 	r.Use(middleware.JWTAuthMiddleware(mockService))
@@ -114,6 +131,10 @@ func TestJWTAuthMiddleware_InvalidToken(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/test", nil)
 	req.Header.Set("Authorization", "Bearer invalidtoken")
+	req.AddCookie(&http.Cookie{
+		Name:  "jwt_token",
+		Value: "invalidtoken",
+	})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -124,33 +145,35 @@ func TestJWTAuthMiddleware_InvalidToken(t *testing.T) {
 func TestJWTAuthMiddleware_ValidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	mockClaims := &MockClaims{ID: "123", Email: "test@example.com"}
 	mockService := &mockJWTService{
 		validateFunc: func(token string) (*MockClaims, error) {
-			if token == "validtoken" {
-				return mockClaims, nil
-			}
-			return nil, errors.New("invalid token")
+			return &MockClaims{
+				ID:    "1",
+				Email: "test@example.com",
+			}, nil
 		},
 	}
-	r.Use(func(c *gin.Context) {
-		// Adapt to ports.JWTService interface
-		type jwtServiceAdapter struct{ *mockJWTService }
-		c.Set("jwtService", &jwtServiceAdapter{mockService})
-		middleware.JWTAuthMiddleware(mockService)(c)
-	})
+	r.Use(middleware.JWTAuthMiddleware(mockService))
 	r.GET("/test", func(c *gin.Context) {
-		id, _ := c.Get("user_id")
-		email, _ := c.Get("user_email")
-		c.JSON(200, gin.H{"id": id, "email": email})
+		userID, exists := c.Get("user_id")
+		assert.True(t, exists)
+		assert.Equal(t, uint(1), userID)
+
+		userEmail, exists := c.Get("user_email")
+		assert.True(t, exists)
+		assert.Equal(t, "test@example.com", userEmail)
+		c.String(200, "ok")
 	})
 
 	req, _ := http.NewRequest("GET", "/test", nil)
 	req.Header.Set("Authorization", "Bearer validtoken")
+	req.AddCookie(&http.Cookie{
+		Name:  "jwt_token",
+		Value: "validtoken",
+	})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "test@example.com")
-	assert.Contains(t, w.Body.String(), "123")
+	assert.Equal(t, "ok", w.Body.String())
 }
