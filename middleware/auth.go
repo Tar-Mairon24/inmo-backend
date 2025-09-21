@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -16,30 +15,19 @@ import (
 
 func JWTAuthMiddleware(jwtService ports.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			logrus.Warn("Authorization header is missing")
+		var token string
+		if cookieToken, err := c.Cookie("jwt_token"); err == nil {
+			token = cookieToken
+		} else {
+			logrus.Warn("JWT token not found in cookies")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "Unauthorized",
-				"message": "Authorization header required",
+				"message": "Missing or invalid token",
 			})
 			c.Abort()
 			return
 		}
 
-		// Extract token from "Bearer <token>"
-		tokenParts := strings.Split(authHeader, " ")
-		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-			logrus.Warn("Invalid authorization header format")
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error":   "Unauthorized",
-				"message": "Invalid authorization header format",
-			})
-			c.Abort()
-			return
-		}
-
-		token := tokenParts[1]
 		claims, err := jwtService.ValidateToken(token)
 		if err != nil {
 			logrus.WithError(err).Warn("Token validation failed")

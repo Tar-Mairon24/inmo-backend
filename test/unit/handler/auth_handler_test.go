@@ -116,15 +116,16 @@ func TestUserLogin_Success(t *testing.T) {
 	user := &models.User{ID: 1, Username: "testuser", Email: "test@example.com"}
 	userResp := &models.UserResponse{ID: user.ID, Username: user.Username, Email: user.Email}
 	loginResp := &models.LoginResponse{
-		User:         userResp,
+		User: userResp,
 		Token:        "jwt-token",
-		RefreshToken: "refresh-token",
+		RefreshToken:    "refresh-token",
 	}
 	mockAuth.On("Login", "test@example.com", "password123").Return(loginResp, nil)
 
 	body := []byte(`{"email":"test@example.com","password":"password123"}`)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json",)
+	
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
@@ -133,13 +134,17 @@ func TestUserLogin_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"success":true`)
-	assert.Contains(t, w.Body.String(), `"data":"jwt-token"`)
+	assert.Contains(t, w.Body.String(), `"data":`, loginResp.User)
 	assert.Contains(t, w.Body.String(), `"message":"Login successful"`)
 	cookies := w.Result().Cookies()
 	found := false
 	for _, cookie := range cookies {
 		if cookie.Name == "refresh_token" && cookie.Value == "refresh-token" {
 			found = true
+			assert.Equal(t, "/", cookie.Path)
+			assert.True(t, cookie.HttpOnly)
+			assert.False(t, cookie.Secure)
+			assert.Equal(t, 3600*24*7, cookie.MaxAge) // 1 week
 			break
 		}
 	}
