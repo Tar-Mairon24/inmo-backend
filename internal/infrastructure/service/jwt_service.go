@@ -63,7 +63,7 @@ func (j *JWTService) GenerateToken(user *models.User) (string, error) {
 		return "", err
 	}
 
-	logrus.Debugf("Generated JWT token for user %d", user.ID)
+	logrus.Infof("Generated JWT token for user %d", user.ID)
 	return signedToken, nil
 }
 
@@ -85,7 +85,7 @@ func (j *JWTService) ValidateToken(tokenString string) (*models.JWTClaims, error
 	}
 
 	if claims, ok := parsedToken.Claims.(*models.JWTClaims); ok && parsedToken.Valid {
-		logrus.Debugf("Successfully validated JWT token for user %d", claims.ID)
+		logrus.Infof("Successfully validated JWT token for user %d", claims.ID)
 		return claims, nil
 	}
 
@@ -94,7 +94,6 @@ func (j *JWTService) ValidateToken(tokenString string) (*models.JWTClaims, error
 }
 
 func (j *JWTService) RefreshToken(tokenString string) (string, error) {
-	logrus.Debug("Refreshing JWT token: " + tokenString)
 	claims, err := j.ValidateToken(tokenString)
 	if err != nil {
 		parsedToken, parseErr := jwt.ParseWithClaims(tokenString, &models.JWTClaims{}, func(token *jwt.Token) (any, error) {
@@ -131,7 +130,6 @@ func (j *JWTService) RefreshToken(tokenString string) (string, error) {
 		return "", err
 	}
 
-	logrus.Infof("Token refreshed successfully for user %d", claims.ID)
 	return newToken, nil
 }
 

@@ -41,12 +41,24 @@ func (uc *authUseCase) Login(email string, password string) (*models.LoginRespon
 		return nil, err
 	}
 
+	oldtoken, err := uc.tokenRepo.GetTokenByUserID(user.ID)
+	if err != nil {
+		logrus.Warn("Failed to get old refresh token, proceeding to create a new one")
+		return nil, nil
+	}
+	if oldtoken != nil {
+		err = uc.tokenRepo.DeleteToken(oldtoken.ID)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to delete old refresh token")
+			return nil, err
+		}
+	}
+
 	refreshToken, idToken, err := middleware.GenerateRefreshToken()
 	if err != nil {
 		logrus.WithError(err).Error("Failed to generate refresh token")
 		return nil, err
 	}
-	logrus.Infof("Generated refresh token: %s", refreshToken)
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
 	err = uc.tokenRepo.SaveToken(&models.RefreshToken{
 		ID:        idToken,
