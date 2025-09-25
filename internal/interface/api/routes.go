@@ -14,6 +14,7 @@ func setupAuthRoutes(rg *gin.RouterGroup, authHandler *handler.AuthHandler) {
 		auth.POST("/login", authHandler.UserLogin)   // POST /api/v1/auth/login
 		auth.POST("/refresh-token", authHandler.RefreshToken) // POST /api/v1/auth/refresh-token
 		auth.POST("/logout/:id", authHandler.UserLogout) // POST /api/v1/auth/logout
+		auth.POST("/status", authHandler.GetStatus) // POST /api/v1/auth/status
 	}
 }
 

@@ -147,3 +147,31 @@ func (uc *authUseCase) RefreshToken(data models.RefreshTokenData) (*models.Refre
 		RefreshToken: refreshToken.Token,
 	}, nil
 }
+
+func (uc *authUseCase) GetStatus(userID uint, refreshToken string) error {
+	if userID == 0 || refreshToken == "" {
+		err := errors.New("User ID and refresh token cannot be empty")
+		return err
+	}
+
+	savedToken, err := uc.tokenRepo.GetTokenByUserID(userID)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get refresh token by user ID")
+		return err
+	}
+	if savedToken == nil {
+		logrus.Error("Refresh token not found")
+		return errors.New("refresh token not found")
+	}
+	if savedToken.ExpiresAt < time.Now().Unix() {
+		logrus.Error("Refresh token expired")
+		return errors.New("refresh token expired")
+	}
+
+	if savedToken.Token == "" || savedToken.Token != refreshToken {
+		logrus.Error("Invalid refresh token")
+		return errors.New("invalid refresh token")
+	}
+
+	return nil
+}

@@ -69,6 +69,25 @@ func (h *AuthHandler) UserLogout(c *gin.Context) {
 		UserID: uint(userID),
 	}
 
+	jwtToken, err := c.Cookie("jwt_token")
+	if err != nil {
+		logrus.WithError(err).Error("JWT token not found in cookies")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request",
+			"message": "Missing JWT token",
+		})
+		return
+	}
+	tokenId, err := h.jwtService.GetUserIDFromClaims(jwtToken)
+	if err != nil || tokenId != uint(userID) {
+		logrus.WithError(err).Error("Unauthorized logout attempt")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "Unauthorized logout attempt",
+		})
+		return
+	}	
+
 	if err := h.authUsecase.Logout(logoutData.UserID); err != nil {
 		logrus.WithError(err).Error("Logout failed")
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -127,5 +146,53 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Token refreshed successfully",
+	})
+}
+
+func (h *AuthHandler) GetStatus(c *gin.Context) {
+	jwtToken, err := c.Cookie("jwt_token")
+	if err != nil {
+		logrus.WithError(err).Error("JWT token not found in cookies")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "Missing JWT token",
+		})
+		return
+	}
+
+	claims, err := h.jwtService.ValidateToken(jwtToken)
+	if err != nil {
+		logrus.WithError(err).Error("Invalid JWT token")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "Invalid JWT token",
+		})
+		return
+	}
+
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		logrus.WithError(err).Error("Refresh token not found in cookies")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "Missing refresh token",
+		})
+		return
+	}
+
+	err = h.authUsecase.GetStatus(claims.ID, refreshToken)
+	if err != nil {
+		logrus.WithError(err).Error("Invalid refresh token")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "Invalid refresh token",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    claims,
+		"message": "Token is valid",
 	})
 }
