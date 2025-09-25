@@ -32,6 +32,9 @@ type Container struct {
 	propertyHandler 	*handler.PropertyHandler
 	healthHandler 		*handler.HealthHandler
 	authHandler 		*handler.AuthHandler
+
+	hashing   			middleware.HashingInterface
+	authMiddleware 		middleware.AuthMiddlewareInterface
 }
 
 func NewContainer() *Container {
@@ -55,9 +58,9 @@ func NewContainer() *Container {
 	container.jwtService = service.NewJWTService(container.userRepo)
 
 	// usecases
-	container.userUsecase = usecase.NewUserUseCase(container.userRepo)
+	container.userUsecase = usecase.NewUserUseCase(container.userRepo, container.hashing)
 	container.propertyUsecase = usecase.NewPropertyUseCase(container.propertyRepo)
-	container.authUsecase = usecase.NewAuthUseCase(container.userRepo, container.tokenRepo, container.jwtService)
+	container.authUsecase = usecase.NewAuthUseCase(container.userRepo, container.tokenRepo, container.jwtService, container.hashing, container.authMiddleware)
 
 	// handlers
 	container.userHandler = handler.NewUserHandler(container.userUsecase)
@@ -100,13 +103,25 @@ func (c *Container) GetServices() Services{
 	}
 }
 
+type Middleware struct {
+	Hashing   			middleware.HashingInterface
+	AuthMiddleware 		middleware.AuthMiddlewareInterface
+}
+
+func (c *Container) GetMiddleware() Middleware {
+	return Middleware{
+		Hashing: c.hashing,
+		AuthMiddleware: c.authMiddleware,
+	}
+}
+
 func (c *Container) seedUser() error {
 	users, err := c.userRepo.GetAll()
 	if err != nil {
 		return err
 	}
 	if len(users) == 0 {
-		password, err := middleware.HashPassword("12345678")
+		password, err := c.hashing.HashPassword("12345678")
 		if err != nil {
 			return err
 		}

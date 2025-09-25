@@ -12,11 +12,13 @@ import (
 
 type UserUseCase struct {
 	repo        ports.UserRepository
+	hashing     middleware.HashingInterface
 }
 
-func NewUserUseCase(repo ports.UserRepository) *UserUseCase {
+func NewUserUseCase(repo ports.UserRepository, hashing middleware.HashingInterface) *UserUseCase {
 	return &UserUseCase{
 		repo:      repo,
+		hashing:   hashing,
 	}
 }
 
@@ -42,7 +44,7 @@ func (uc *UserUseCase) CreateUser(user *models.User) (*models.UserResponse, erro
 		return nil, errors.New("email cannot be empty")
 	}
 
-	hashedPassword, err := middleware.HashPassword(user.Password)
+	hashedPassword, err := uc.hashing.HashPassword(user.Password)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to hash password")
 		return nil, err

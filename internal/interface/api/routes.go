@@ -18,7 +18,7 @@ func setupAuthRoutes(rg *gin.RouterGroup, authHandler *handler.AuthHandler) {
 	}
 }
 
-func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtService ports.JWTService) {
+func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtService ports.JWTService, middleware middleware.AuthMiddlewareInterface) {
 	users := rg.Group("/users")
 	users.Use(middleware.JWTAuthMiddleware(jwtService))
 	{
@@ -30,7 +30,7 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtS
 	}
 }
 
-func setupPropertyRoutes(rg *gin.RouterGroup, propertyHandler *handler.PropertyHandler, jwtService ports.JWTService) {
+func setupPropertyRoutes(rg *gin.RouterGroup, propertyHandler *handler.PropertyHandler, jwtService ports.JWTService, middleware middleware.AuthMiddlewareInterface) {
 	properties := rg.Group("/properties")
 	properties.Use(middleware.JWTAuthMiddleware(jwtService))
 	{
