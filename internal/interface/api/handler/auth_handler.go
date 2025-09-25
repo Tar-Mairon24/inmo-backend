@@ -89,6 +89,15 @@ func (h *AuthHandler) UserLogout(c *gin.Context) {
 	}	
 
 	if err := h.authUsecase.Logout(logoutData.UserID); err != nil {
+		if err.Error() == "no token found for the given user ID, user was not logged in" {
+			logrus.Warn("User was not logged in")
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "Bad request",
+				"message": "User was not logged in",
+			})
+			return
+		}
+
 		logrus.WithError(err).Error("Logout failed")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error":   "Unauthorized",
@@ -192,7 +201,6 @@ func (h *AuthHandler) GetStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    claims,
-		"message": "Token is valid",
+		"message": "User is logged in",
 	})
 }

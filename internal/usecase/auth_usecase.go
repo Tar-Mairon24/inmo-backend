@@ -93,8 +93,12 @@ func (uc *authUseCase) Logout(userID uint) error {
 
 	tokenResponseID, err := uc.tokenRepo.GetTokenIDByUserID(userID)
 	if err != nil {
-		logrus.WithError(err).Error("Failed to get user ID by token")
+		logrus.WithError(err).Error("Failed to get token ID by user ID")
 		return err
+	}
+	if tokenResponseID == "" {
+		logrus.Warn("No token found for the given user ID")
+		return errors.New("no token found for the given user ID, user was not logged in")
 	}
 
 	err = uc.tokenRepo.DeleteToken(tokenResponseID)
