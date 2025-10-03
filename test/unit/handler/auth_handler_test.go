@@ -25,16 +25,15 @@ func TestUserLogin_Success(t *testing.T) {
 	user := &models.User{ID: 1, Username: "testuser", Email: "test@example.com"}
 	userResp := &models.UserResponse{ID: user.ID, Username: user.Username, Email: user.Email}
 	loginResp := &models.LoginResponse{
-		User:         userResp,
+		User: userResp,
 		Token:        "jwt-token",
-		RefreshToken: "refresh-token",
+		RefreshToken:    "refresh-token",
 	}
 	mockAuth.On("Login", "test@example.com", "password123").Return(loginResp, nil)
 
 	body := []byte(`{"email":"test@example.com","password":"password123"}`)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
