@@ -541,11 +541,11 @@ func TestAuthUseCase_GetStatus(t *testing.T) {
         uc := usecase.NewAuthUseCase(userRepo, tokenRepo, jwtService, hashing, authMiddleware)
 
         err := uc.GetStatus(0, "")
-        assert.EqualError(t, err, "User ID and refresh token cannot be empty")
+        assert.EqualError(t, err, "user ID and refresh token cannot be empty")
         err = uc.GetStatus(testUserID, "")
-        assert.EqualError(t, err, "User ID and refresh token cannot be empty")
+        assert.EqualError(t, err, "user ID and refresh token cannot be empty")
         err = uc.GetStatus(0, validRefresh)
-        assert.EqualError(t, err, "User ID and refresh token cannot be empty")
+        assert.EqualError(t, err, "user ID and refresh token cannot be empty")
     })
 
     t.Run("error getting refresh token by user ID", func(t *testing.T) {
