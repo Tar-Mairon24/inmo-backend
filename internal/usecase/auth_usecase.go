@@ -157,7 +157,7 @@ func (au *authUseCase) RefreshToken(data models.RefreshTokenData) (*models.Refre
 
 func (au *authUseCase) GetStatus(userID uint, refreshToken string) error {
 	if userID == 0 || refreshToken == "" {
-		err := errors.New("User ID and refresh token cannot be empty")
+		err := errors.New("user ID and refresh token cannot be empty")
 		return err
 	}
 

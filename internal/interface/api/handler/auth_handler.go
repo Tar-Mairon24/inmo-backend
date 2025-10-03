@@ -55,7 +55,7 @@ func (h *AuthHandler) UserLogin(c *gin.Context) {
 func (h *AuthHandler) UserLogout(c *gin.Context) {
 	idStr := c.Param("id")
 	userID, err := strconv.Atoi(idStr)
-	if err != nil {
+	if err != nil || userID <= 0 {
 		logrus.WithError(err).Error("Invalid user ID")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Invalid request",

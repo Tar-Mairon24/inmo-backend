@@ -74,8 +74,5 @@ func Init() {
 }
 
 func GetDBErrorNoRows(err error) bool {
-	if err == sql.ErrNoRows {
-		return true
-	}
-	return false
+	return err == sql.ErrNoRows
 }
