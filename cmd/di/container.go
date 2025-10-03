@@ -49,6 +49,10 @@ func NewContainer() *Container {
 		logrus.Fatal("Failed to initialize database connection")
 	}
 
+	// middleware
+	container.hashing = middleware.NewHashing()
+	container.authMiddleware = middleware.NewAuthMiddleware()
+
 	// repos
 	container.userRepo = repository.NewUserRepository(container.SqlDB)
 	container.propertyRepo = repository.NewPropertyRepository(container.SqlDB)
@@ -67,10 +71,6 @@ func NewContainer() *Container {
 	container.propertyHandler = handler.NewPropertyHandler(container.propertyUsecase)
 	container.authHandler = handler.NewAuthHandler(container.jwtService, container.authUsecase)
 	container.healthHandler = handler.NewHealthHandler()
-
-	// middleware
-	container.hashing = middleware.NewHashing()
-	container.authMiddleware = middleware.NewAuthMiddleware()
 
 	err := container.seedUser()
 	if err != nil {
