@@ -9,123 +9,32 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/interface/api/handler"
+	"inmo-backend/test/mocks/service"
+	"inmo-backend/test/mocks/usecase"
 )
-
-type MockJWTService struct {
-	mock.Mock
-}
-
-func (m *MockJWTService) GenerateToken(user *models.User) (string, error) {
-	args := m.Called(user)
-	return args.String(0), args.Error(1)
-}
-
-// Add missing RefreshToken method to satisfy ports.JWTService interface
-func (m *MockJWTService) RefreshToken(token string) (string, error) {
-	args := m.Called(token)
-	return args.String(0), args.Error(1)
-}
-
-// Add missing ValidateToken method to satisfy ports.JWTService interface
-func (m *MockJWTService) ValidateToken(token string) (*models.JWTClaims, error) {
-	args := m.Called(token)
-	if claims, ok := args.Get(0).(*models.JWTClaims); ok {
-		return claims, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-// Add missing GetUserIDFromClaims method to satisfy ports.JWTService interface
-func (m *MockJWTService) GetUserIDFromClaims(claims string) (uint, error) {
-	args := m.Called(claims)
-	return args.Get(0).(uint), args.Error(1)
-}
-
-// MockAuthUseCase is a mock implementation of AuthUseCase
-type MockAuthUseCase struct {
-	mock.Mock
-}
-
-func (m *MockAuthUseCase) Login(email, password string) (*models.LoginResponse, error) {
-	args := m.Called(email, password)
-
-	if LoginResp, ok := args.Get(0).(*models.LoginResponse); ok {
-		return LoginResp, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockAuthUseCase) GetAllUsers() ([]models.UserResponse, error) {
-	args := m.Called()
-
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]models.UserResponse), args.Error(1)
-}
-func (m *MockAuthUseCase) GetUserByID(id uint) (*models.UserResponse, error) {
-	args := m.Called(id)
-	if user, ok := args.Get(0).(*models.UserResponse); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockAuthUseCase) CreateUser(user *models.User) (*models.UserResponse, error) {
-	args := m.Called(user)
-	if userResp, ok := args.Get(0).(*models.UserResponse); ok {
-		return userResp, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockAuthUseCase) UpdateUser(user *models.User) (*models.UserResponse, error) {
-	args := m.Called(user)
-	if userResp, ok := args.Get(0).(*models.UserResponse); ok {
-		return userResp, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockAuthUseCase) DeleteUser(id uint) error {
-	args := m.Called(id)
-	return args.Error(0)
-}
-
-// Add missing Logout method to satisfy ports.AuthUseCase interface
-func (m *MockAuthUseCase) Logout(userID uint) error {
-	args := m.Called(userID)
-	return args.Error(0)
-}
-
-// Add missing RefreshToken method to satisfy ports.AuthUseCase interface
-func (m *MockAuthUseCase) RefreshToken(data models.RefreshTokenData) (*models.RefreshTokenData, error) {
-	args := m.Called(data)
-	if resp, ok := args.Get(0).(*models.RefreshTokenData); ok {
-		return resp, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
 
 func TestUserLogin_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockJWT := new(MockJWTService)
-	mockAuth := new(MockAuthUseCase)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
 	handler := handler.NewAuthHandler(mockJWT, mockAuth)
 
 	user := &models.User{ID: 1, Username: "testuser", Email: "test@example.com"}
 	userResp := &models.UserResponse{ID: user.ID, Username: user.Username, Email: user.Email}
 	loginResp := &models.LoginResponse{
-		User: userResp,
+		User:         userResp,
 		Token:        "jwt-token",
-		RefreshToken:    "refresh-token",
+		RefreshToken: "refresh-token",
 	}
 	mockAuth.On("Login", "test@example.com", "password123").Return(loginResp, nil)
 
 	body := []byte(`{"email":"test@example.com","password":"password123"}`)
 	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json",)
-	
+	req.Header.Set("Content-Type", "application/json")
+
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
@@ -154,8 +63,8 @@ func TestUserLogin_Success(t *testing.T) {
 
 func TestUserLogin_BadRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockJWT := new(MockJWTService)
-	mockAuth := new(MockAuthUseCase)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
 	handler := handler.NewAuthHandler(mockJWT, mockAuth)
 
 	body := []byte(`{"email":123,"password":true}`) // invalid types
@@ -174,8 +83,8 @@ func TestUserLogin_BadRequest(t *testing.T) {
 
 func TestUserLogin_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockJWT := new(MockJWTService)
-	mockAuth := new(MockAuthUseCase)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
 	handler := handler.NewAuthHandler(mockJWT, mockAuth)
 
 	mockAuth.On("Login", "test@example.com", "wrongpassword").Return(nil, errors.New("invalid credentials"))
@@ -194,90 +103,167 @@ func TestUserLogin_Unauthorized(t *testing.T) {
 	assert.Contains(t, w.Body.String(), `"message":"invalid credentials"`)
 	mockAuth.AssertExpectations(t)
 }
+
 func TestUserLogout_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockJWT := new(MockJWTService)
-	mockAuth := new(MockAuthUseCase)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
 	handler := handler.NewAuthHandler(mockJWT, mockAuth)
 
-	mockAuth.On("Logout", uint(1)).Return(nil)
+	// Setup mocks
+	mockJWT.On("GetUserIDFromClaims", "valid-jwt-token").Return(uint(42), nil)
+	mockAuth.On("Logout", uint(42)).Return(nil)
 
-	body := []byte(`{"user_id":1}`)
-	req, _ := http.NewRequest(http.MethodPost, "/logout", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest(http.MethodPost, "/logout/42", nil)
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: "valid-jwt-token"})
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
+	c.Params = gin.Params{{Key: "id", Value: "42"}}
 
 	handler.UserLogout(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"success":true`)
 	assert.Contains(t, w.Body.String(), `"message":"Logout successful"`)
+	mockJWT.AssertExpectations(t)
 	mockAuth.AssertExpectations(t)
 }
 
-func TestUserLogout_BadRequest(t *testing.T) {
+func TestUserLogout_BadRequest_InvalidUserID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockJWT := new(MockJWTService)
-	mockAuth := new(MockAuthUseCase)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
 	handler := handler.NewAuthHandler(mockJWT, mockAuth)
 
-	body := []byte(`{"user_id":"not-a-number"}`) // invalid type
-	req, _ := http.NewRequest(http.MethodPost, "/logout", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest(http.MethodPost, "/logout/abc", nil)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
+	c.Params = gin.Params{{Key: "id", Value: "abc"}}
 
 	handler.UserLogout(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), `"error":"Invalid request"`)
-	assert.Contains(t, w.Body.String(), `"message":"Failed to parse logout data"`)
+	assert.Contains(t, w.Body.String(), `"message":"Failed to parse user ID"`)
 }
 
-func TestUserLogout_Unauthorized(t *testing.T) {
+func TestUserLogout_BadRequest_MissingJWTToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockJWT := new(MockJWTService)
-	mockAuth := new(MockAuthUseCase)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
 	handler := handler.NewAuthHandler(mockJWT, mockAuth)
 
-	mockAuth.On("Logout", uint(2)).Return(errors.New("logout failed"))
-
-	body := []byte(`{"user_id":2}`)
-	req, _ := http.NewRequest(http.MethodPost, "/logout", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest(http.MethodPost, "/logout/42", nil)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
+	c.Params = gin.Params{{Key: "id", Value: "42"}}
+
+	handler.UserLogout(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), `"error":"Invalid request"`)
+	assert.Contains(t, w.Body.String(), `"message":"Missing JWT token"`)
+}
+
+func TestUserLogout_Unauthorized_LogoutAttempt(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
+	handler := handler.NewAuthHandler(mockJWT, mockAuth)
+
+	// JWT returns wrong user ID
+	mockJWT.On("GetUserIDFromClaims", "valid-jwt-token").Return(uint(99), nil)
+
+	req, _ := http.NewRequest(http.MethodPost, "/logout/42", nil)
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: "valid-jwt-token"})
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{{Key: "id", Value: "42"}}
 
 	handler.UserLogout(c)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Contains(t, w.Body.String(), `"error":"Unauthorized"`)
-	assert.Contains(t, w.Body.String(), `"message":"logout failed"`)
+	assert.Contains(t, w.Body.String(), `"message":"Unauthorized logout attempt"`)
+	mockJWT.AssertExpectations(t)
+}
+
+func TestUserLogout_Unauthorized_LogoutFailed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
+	handler := handler.NewAuthHandler(mockJWT, mockAuth)
+
+	mockJWT.On("GetUserIDFromClaims", "valid-jwt-token").Return(uint(42), nil)
+	mockAuth.On("Logout", uint(42)).Return(errors.New("some logout error"))
+
+	req, _ := http.NewRequest(http.MethodPost, "/logout/42", nil)
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: "valid-jwt-token"})
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{{Key: "id", Value: "42"}}
+
+	handler.UserLogout(c)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Contains(t, w.Body.String(), `"error":"Unauthorized"`)
+	assert.Contains(t, w.Body.String(), `"message":"some logout error"`)
+	mockJWT.AssertExpectations(t)
+	mockAuth.AssertExpectations(t)
+}
+
+func TestUserLogout_BadRequest_UserNotLoggedIn(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
+	handler := handler.NewAuthHandler(mockJWT, mockAuth)
+
+	mockJWT.On("GetUserIDFromClaims", "valid-jwt-token").Return(uint(42), nil)
+	mockAuth.On("Logout", uint(42)).Return(errors.New("no token found for the given user ID, user was not logged in"))
+
+	req, _ := http.NewRequest(http.MethodPost, "/logout/42", nil)
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: "valid-jwt-token"})
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	c.Params = gin.Params{{Key: "id", Value: "42"}}
+
+	handler.UserLogout(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), `"error":"Bad request"`)
+	assert.Contains(t, w.Body.String(), `"message":"User was not logged in"`)
+	mockJWT.AssertExpectations(t)
 	mockAuth.AssertExpectations(t)
 }
 func TestRefreshToken_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockJWT := new(MockJWTService)
-	mockAuth := new(MockAuthUseCase)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
 	handler := handler.NewAuthHandler(mockJWT, mockAuth)
-
-	input := models.RefreshTokenData{
-		RefreshToken: "old-refresh-token",
-		JwtToken:     "old-jwt-token",
+	// Prepare mock response
+	oldRefreshToken := "old-refresh-token"
+	oldJwtToken := "old-jwt-token"
+	newRefreshToken := "new-refresh-token"
+	newJwtToken := "new-jwt-token"
+	refreshTokenData := models.RefreshTokenData{
+		RefreshToken: oldRefreshToken,
+		JwtToken:     oldJwtToken,
 	}
-	output := &models.RefreshTokenData{
-		RefreshToken: "new-refresh-token",
-		JwtToken:     "new-jwt-token",
+	newTokenData := &models.RefreshTokenData{
+		RefreshToken: newRefreshToken,
+		JwtToken:     newJwtToken,
 	}
-	mockAuth.On("RefreshToken", input).Return(output, nil)
+	mockAuth.On("RefreshToken", refreshTokenData).Return(newTokenData, nil)
 
-	body := []byte(`{"refresh_token":"old-refresh-token","jwt_token":"old-jwt-token"}`)
-	req, _ := http.NewRequest(http.MethodPost, "/refresh-token", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest(http.MethodPost, "/refresh-token", nil)
+	req.AddCookie(&http.Cookie{Name: "refresh_token", Value: oldRefreshToken})
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: oldJwtToken})
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
@@ -286,29 +272,39 @@ func TestRefreshToken_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"success":true`)
-	assert.Contains(t, w.Body.String(), `"data":"new-jwt-token"`)
 	assert.Contains(t, w.Body.String(), `"message":"Token refreshed successfully"`)
 	cookies := w.Result().Cookies()
-	found := false
+	foundRefresh := false
+	foundJwt := false
 	for _, cookie := range cookies {
-		if cookie.Name == "refresh_token" && cookie.Value == "new-refresh-token" {
-			found = true
-			break
+		if cookie.Name == "refresh_token" && cookie.Value == newRefreshToken {
+			foundRefresh = true
+			assert.Equal(t, "/", cookie.Path)
+			assert.True(t, cookie.HttpOnly)
+			assert.False(t, cookie.Secure)
+			assert.Equal(t, 3600*24*7, cookie.MaxAge)
+		}
+		if cookie.Name == "jwt_token" && cookie.Value == newJwtToken {
+			foundJwt = true
+			assert.Equal(t, "/", cookie.Path)
+			assert.True(t, cookie.HttpOnly)
+			assert.False(t, cookie.Secure)
+			assert.Equal(t, 3600*24*7, cookie.MaxAge)
 		}
 	}
-	assert.True(t, found, "refresh_token cookie should be set")
+	assert.True(t, foundRefresh, "refresh_token cookie should be set")
+	assert.True(t, foundJwt, "jwt_token cookie should be set")
 	mockAuth.AssertExpectations(t)
 }
 
-func TestRefreshToken_BadRequest(t *testing.T) {
+func TestRefreshToken_BadRequest_MissingRefreshToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockJWT := new(MockJWTService)
-	mockAuth := new(MockAuthUseCase)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
 	handler := handler.NewAuthHandler(mockJWT, mockAuth)
 
-	body := []byte(`{"refresh_token":123,"jwt_token":true}`) // invalid types
-	req, _ := http.NewRequest(http.MethodPost, "/refresh-token", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest(http.MethodPost, "/refresh-token", nil)
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: "jwt-token"})
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
@@ -317,24 +313,43 @@ func TestRefreshToken_BadRequest(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), `"error":"Invalid request"`)
-	assert.Contains(t, w.Body.String(), `"message":"Failed to parse refresh token data"`)
+	assert.Contains(t, w.Body.String(), `"message":"Missing refresh token"`)
 }
 
-func TestRefreshToken_Unauthorized(t *testing.T) {
+func TestRefreshToken_BadRequest_MissingJWTToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockJWT := new(MockJWTService)
-	mockAuth := new(MockAuthUseCase)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
 	handler := handler.NewAuthHandler(mockJWT, mockAuth)
 
-	input := models.RefreshTokenData{
-		RefreshToken: "bad-refresh-token",
-		JwtToken:     "bad-jwt-token",
-	}
-	mockAuth.On("RefreshToken", input).Return(nil, errors.New("refresh failed"))
+	req, _ := http.NewRequest(http.MethodPost, "/refresh-token", nil)
+	req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "refresh-token"})
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 
-	body := []byte(`{"refresh_token":"bad-refresh-token","jwt_token":"bad-jwt-token"}`)
-	req, _ := http.NewRequest(http.MethodPost, "/refresh-token", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
+	handler.RefreshToken(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), `"error":"Invalid request"`)
+	assert.Contains(t, w.Body.String(), `"message":"Missing JWT token"`)
+}
+
+func TestRefreshToken_Unauthorized_RefreshFailed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
+	handler := handler.NewAuthHandler(mockJWT, mockAuth)
+
+	refreshTokenData := models.RefreshTokenData{
+		RefreshToken: "refresh-token",
+		JwtToken:     "jwt-token",
+	}
+	mockAuth.On("RefreshToken", refreshTokenData).Return(nil, errors.New("invalid refresh token"))
+
+	req, _ := http.NewRequest(http.MethodPost, "/refresh-token", nil)
+	req.AddCookie(&http.Cookie{Name: "refresh_token", Value: "refresh-token"})
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: "jwt-token"})
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
@@ -343,6 +358,128 @@ func TestRefreshToken_Unauthorized(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Contains(t, w.Body.String(), `"error":"Unauthorized"`)
-	assert.Contains(t, w.Body.String(), `"message":"refresh failed"`)
+	assert.Contains(t, w.Body.String(), `"message":"invalid refresh token"`)
 	mockAuth.AssertExpectations(t)
 }
+func TestGetStatus_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
+	handler := handler.NewAuthHandler(mockJWT, mockAuth)
+
+	jwtToken := "valid-jwt-token"
+	refreshToken := "valid-refresh-token"
+	claims := &models.JWTClaims{ID: 123}
+
+	mockJWT.On("ValidateToken", jwtToken).Return(claims, nil)
+	mockAuth.On("GetStatus", claims.ID, refreshToken).Return(nil)
+
+	req, _ := http.NewRequest(http.MethodGet, "/status", nil)
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: jwtToken})
+	req.AddCookie(&http.Cookie{Name: "refresh_token", Value: refreshToken})
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	handler.GetStatus(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"success":true`)
+	assert.Contains(t, w.Body.String(), `"message":"User is logged in"`)
+	mockJWT.AssertExpectations(t)
+	mockAuth.AssertExpectations(t)
+}
+
+func TestGetStatus_Unauthorized_MissingJWTToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
+	handler := handler.NewAuthHandler(mockJWT, mockAuth)
+
+	req, _ := http.NewRequest(http.MethodGet, "/status", nil)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	handler.GetStatus(c)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Contains(t, w.Body.String(), `"error":"Unauthorized"`)
+	assert.Contains(t, w.Body.String(), `"message":"Missing JWT token"`)
+}
+
+func TestGetStatus_Unauthorized_InvalidJWTToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
+	handler := handler.NewAuthHandler(mockJWT, mockAuth)
+
+	jwtToken := "invalid-jwt-token"
+	mockJWT.On("ValidateToken", jwtToken).Return(nil, errors.New("invalid token"))
+
+	req, _ := http.NewRequest(http.MethodGet, "/status", nil)
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: jwtToken})
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	handler.GetStatus(c)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Contains(t, w.Body.String(), `"error":"Unauthorized"`)
+	assert.Contains(t, w.Body.String(), `"message":"Invalid JWT token"`)
+	mockJWT.AssertExpectations(t)
+}
+
+func TestGetStatus_Unauthorized_MissingRefreshToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
+	handler := handler.NewAuthHandler(mockJWT, mockAuth)
+
+	jwtToken := "valid-jwt-token"
+	claims := &models.JWTClaims{ID: 123}
+	mockJWT.On("ValidateToken", jwtToken).Return(claims, nil)
+
+	req, _ := http.NewRequest(http.MethodGet, "/status", nil)
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: jwtToken})
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	handler.GetStatus(c)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Contains(t, w.Body.String(), `"error":"Unauthorized"`)
+	assert.Contains(t, w.Body.String(), `"message":"Missing refresh token"`)
+	mockJWT.AssertExpectations(t)
+}
+
+func TestGetStatus_Unauthorized_InvalidRefreshToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockJWT := serviceMocks.NewMockJWTService()
+	mockAuth := usecaseMocks.NewMockAuthUseCase()
+	handler := handler.NewAuthHandler(mockJWT, mockAuth)
+
+	jwtToken := "valid-jwt-token"
+	refreshToken := "invalid-refresh-token"
+	claims := &models.JWTClaims{ID: 123}
+	mockJWT.On("ValidateToken", jwtToken).Return(claims, nil)
+	mockAuth.On("GetStatus", claims.ID, refreshToken).Return(errors.New("invalid refresh token"))
+
+	req, _ := http.NewRequest(http.MethodGet, "/status", nil)
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: jwtToken})
+	req.AddCookie(&http.Cookie{Name: "refresh_token", Value: refreshToken})
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	handler.GetStatus(c)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Contains(t, w.Body.String(), `"error":"Unauthorized"`)
+	assert.Contains(t, w.Body.String(), `"message":"Invalid refresh token"`)
+	mockJWT.AssertExpectations(t)
+	mockAuth.AssertExpectations(t)
+}
+

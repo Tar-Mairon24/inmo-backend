@@ -48,7 +48,6 @@ func (au *authUseCase) Login(email string, password string) (*models.LoginRespon
 	oldtoken, err := au.tokenRepo.GetTokenByUserID(user.ID)
 	if err != nil {
 		logrus.Warn("Failed to get old refresh token, proceeding to create a new one")
-		return nil, nil
 	}
 	if oldtoken != nil {
 		err = au.tokenRepo.DeleteToken(oldtoken.ID)

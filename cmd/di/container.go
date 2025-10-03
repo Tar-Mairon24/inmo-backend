@@ -68,6 +68,10 @@ func NewContainer() *Container {
 	container.authHandler = handler.NewAuthHandler(container.jwtService, container.authUsecase)
 	container.healthHandler = handler.NewHealthHandler()
 
+	// middleware
+	container.hashing = middleware.NewHashing()
+	container.authMiddleware = middleware.NewAuthMiddleware()
+
 	err := container.seedUser()
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to seed initial user")

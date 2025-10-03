@@ -9,64 +9,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/interface/api/handler"
+	"inmo-backend/test/mocks/usecase"
 )
-
-// MockUserUseCase is a mock implementation of UserUseCase
-type MockUserUseCase struct {
-	mock.Mock
-}
-
-func (m *MockUserUseCase) Login(email, password string) (*models.LoginResponse, error) {
-	args := m.Called(email, password)
-
-	if LoginResp, ok := args.Get(0).(*models.LoginResponse); ok {
-		return LoginResp, args.Error(1)
-	}
-	return nil, args.Error(1)
-	
-}
-func (m *MockUserUseCase) GetAllUsers() ([]models.UserResponse, error) {
-	args := m.Called()
-
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]models.UserResponse), args.Error(1)
-}
-func (m *MockUserUseCase) GetUserByID(id uint) (*models.UserResponse, error) {
-	args := m.Called(id)
-	if user, ok := args.Get(0).(*models.UserResponse); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockUserUseCase) CreateUser(user *models.User) (*models.UserResponse, error) {
-	args := m.Called(user)
-	if userResp, ok := args.Get(0).(*models.UserResponse); ok {
-		return userResp, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockUserUseCase) UpdateUser(user *models.User) (*models.UserResponse, error) {
-	args := m.Called(user)
-	if userResp, ok := args.Get(0).(*models.UserResponse); ok {
-		return userResp, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockUserUseCase) DeleteUser(id uint) error {
-	args := m.Called(id)
-	return args.Error(0)
-}
 
 func TestGetUsers_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
-	handler := handler.NewUserHandler(mockUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 
 	users := []models.UserResponse{
 		{ID: 1, Username: "user1", Email: "user1@example.com"},
@@ -78,7 +29,8 @@ func TestGetUsers_Success(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request, _ = http.NewRequest("GET", "/users", nil)
 
-	handler.GetUsers(c)
+	h := handler.NewUserHandler(mockUseCase)
+	h.GetUsers(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), `"message":"Users retrieved successfully"`)
@@ -90,7 +42,7 @@ func TestGetUsers_Success(t *testing.T) {
 
 func TestGetUsers_InternalServerError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	mockUseCase.On("GetAllUsers").Return(nil, errors.New("database error"))
@@ -109,7 +61,7 @@ func TestGetUsers_InternalServerError(t *testing.T) {
 
 func TestGetUsers_NoUsersFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	mockUseCase.On("GetAllUsers").Return([]models.UserResponse{}, nil)
@@ -127,7 +79,7 @@ func TestGetUsers_NoUsersFound(t *testing.T) {
 }
 func TestGetUserByID_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	userResp := &models.UserResponse{
@@ -152,22 +104,23 @@ func TestGetUserByID_Success(t *testing.T) {
 
 func TestGetUserByID_InvalidIDFormat(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
-	handler := handler.NewUserHandler(mockUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Params = gin.Params{{Key: "id", Value: "abc"}}
 	c.Request, _ = http.NewRequest("GET", "/users/abc", nil)
 
+	handler := handler.NewUserHandler(mockUseCase)
 	handler.GetUserByID(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), `"error":"Invalid user ID"`)
+	assert.Contains(t, w.Body.String(), `"message":"User ID must be a valid number"`)
 }
 func TestCreateUser_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	userData := `{"username":"newuser","email":"newuser@example.com","password":"securepass"}`
@@ -198,7 +151,7 @@ func TestCreateUser_Success(t *testing.T) {
 
 func TestCreateUser_InvalidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	invalidJSON := `{"username":"baduser","email":"baduser@example.com","password":}`
@@ -217,7 +170,7 @@ func TestCreateUser_InvalidJSON(t *testing.T) {
 
 func TestCreateUser_InternalServerError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	userData := `{"username":"newuser","email":"newuser@example.com","password":"securepass"}`
@@ -242,7 +195,7 @@ func TestCreateUser_InternalServerError(t *testing.T) {
 }
 func TestUpdateUser_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	userData := `{"id":1,"username":"updateduser","email":"updated@example.com","password":"newpass"}`
@@ -274,7 +227,7 @@ func TestUpdateUser_Success(t *testing.T) {
 
 func TestUpdateUser_InvalidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	invalidJSON := `{"id":1,"username":"baduser","email":"baduser@example.com","password":}`
@@ -293,7 +246,7 @@ func TestUpdateUser_InvalidJSON(t *testing.T) {
 
 func TestUpdateUser_InternalServerError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	userData := `{"id":1,"username":"updateduser","email":"updated@example.com","password":"newpass"}`
@@ -319,7 +272,7 @@ func TestUpdateUser_InternalServerError(t *testing.T) {
 }
 func TestDeleteUser_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	mockUseCase.On("DeleteUser", uint(1)).Return(nil)
@@ -338,7 +291,7 @@ func TestDeleteUser_Success(t *testing.T) {
 
 func TestDeleteUser_InvalidIDFormat(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	w := httptest.NewRecorder()
@@ -355,7 +308,7 @@ func TestDeleteUser_InvalidIDFormat(t *testing.T) {
 
 func TestDeleteUser_InternalServerError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	mockUseCase := new(MockUserUseCase)
+	mockUseCase := usecaseMocks.NewMockUserUseCase()
 	handler := handler.NewUserHandler(mockUseCase)
 
 	mockUseCase.On("DeleteUser", uint(2)).Return(errors.New("delete failed"))
@@ -372,7 +325,3 @@ func TestDeleteUser_InternalServerError(t *testing.T) {
 	assert.Contains(t, w.Body.String(), `"message":"delete failed"`)
 	mockUseCase.AssertExpectations(t)
 }
-
-
-
-

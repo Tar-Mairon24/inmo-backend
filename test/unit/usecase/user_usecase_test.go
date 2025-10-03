@@ -9,64 +9,15 @@ import (
 
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/usecase"
-	"inmo-backend/middleware"
+	"inmo-backend/test/mocks/middleware"
+	"inmo-backend/test/mocks/repository"
 )
-	
-
-type MockUserRepository struct {
-	mock.Mock
-}
-
-func (m *MockUserRepository) Create(user *models.User) (*models.UserResponse, error) {
-	args := m.Called(user)
-	if userResponse, ok := args.Get(0).(*models.UserResponse); ok {
-		return userResponse, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockUserRepository) GetByID(id uint) (*models.UserResponse, error) {
-	args := m.Called(id)
-	if user, ok := args.Get(0).(*models.UserResponse); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockUserRepository) ConsultPassword(username string) (string, error) {
-	args := m.Called(username)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockUserRepository) GetByEmail(email string) (*models.User, error) {
-	args := m.Called(email)
-	if user, ok := args.Get(0).(*models.User); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockUserRepository) GetAll() ([]models.UserResponse, error) {
-    args := m.Called()
-    if users, ok := args.Get(0).([]models.UserResponse); ok {
-        return users, args.Error(1)
-    }
-    return nil, args.Error(1)
-}
-func (m *MockUserRepository) Update(user *models.User) (*models.UserResponse, error) {
-	args := m.Called(user)
-	if userResponse, ok := args.Get(0).(*models.UserResponse); ok {
-		return userResponse, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func (m *MockUserRepository) Delete(userID uint) error {
-	args := m.Called(userID)
-	return args.Error(0)
-}
-
 
 func TestUserUseCase_GetAllUsers(t *testing.T) {
 	t.Run("should return all users successfully", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		users := []models.UserResponse{
 			{ID: 1, Username: "user1", Email: "user1@example.com"},
@@ -83,8 +34,9 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 	})
 
 	t.Run("should return error when repository fails", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()	
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		mockRepo.On("GetAll").Return(nil, errors.New("repo error"))
 
@@ -98,8 +50,9 @@ func TestUserUseCase_GetAllUsers(t *testing.T) {
 }
 func TestUserUseCase_GetUserByID(t *testing.T) {
 	t.Run("should return user response when user exists", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		expectedUser := &models.UserResponse{
 			ID:       1,
@@ -117,8 +70,9 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 	})
 
 	t.Run("should return error when user not found", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		mockRepo.On("GetByID", uint(2)).Return(nil, errors.New("user not found"))
 
@@ -132,8 +86,9 @@ func TestUserUseCase_GetUserByID(t *testing.T) {
 }
 func TestUserUseCase_CreateUser(t *testing.T) {
 	t.Run("should return error when password is empty", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		user := &models.User{
 			Username: "testuser",
@@ -148,8 +103,9 @@ func TestUserUseCase_CreateUser(t *testing.T) {
 		assert.Equal(t, "password cannot be empty", err.Error())
 	})
 	t.Run("should return error when username is empty", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		user := &models.User{
 			Username: "",
@@ -165,8 +121,9 @@ func TestUserUseCase_CreateUser(t *testing.T) {
 	})
 
 	t.Run("should return error when email is empty", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		user := &models.User{
 			Username: "testuser",
@@ -182,8 +139,9 @@ func TestUserUseCase_CreateUser(t *testing.T) {
 	})
 
 	t.Run("should create user successfully", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		user := &models.User{
 			Username: "testuser",
@@ -191,8 +149,9 @@ func TestUserUseCase_CreateUser(t *testing.T) {
 			Password: "password",
 		}
 
+		hashedPassword := "$2a$10$N9qo8uLOickgx2ZMRZoMye.KoFJhxbJGVuUzwfl2lmKj5g4F8clDa" // bcrypt hash for "password"
+		mockHashing.On("HashPassword", "password").Return(hashedPassword, nil)
 		// Use real hash for password
-		hashedPassword, _ := middleware.HashPassword("password")
 		expectedUser := &models.User{
 			Username: "testuser",
 			Email:    "test@example.com",
@@ -207,20 +166,22 @@ func TestUserUseCase_CreateUser(t *testing.T) {
 		mockRepo.On("Create", mock.MatchedBy(func(u *models.User) bool {
 			return u.Username == expectedUser.Username &&
 				u.Email == expectedUser.Email &&
-				u.Password != "" && u.Password != "password"
+				u.Password == expectedUser.Password
 		})).Return(expectedResponse, nil)
 
 		result, err := uc.CreateUser(user)
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedResponse, result)
+		mockHashing.AssertExpectations(t)
 		mockRepo.AssertExpectations(t)
 	})
 }
 func TestUserUseCase_UpdateUser(t *testing.T) {
 	t.Run("should update user successfully", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		user := &models.User{
 			ID:       1,
@@ -244,8 +205,9 @@ func TestUserUseCase_UpdateUser(t *testing.T) {
 	})
 
 	t.Run("should return error when update fails", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		user := &models.User{
 			ID:       2,
@@ -266,8 +228,9 @@ func TestUserUseCase_UpdateUser(t *testing.T) {
 }
 func TestUserUseCase_DeleteUser(t *testing.T) {
 	t.Run("should delete user successfully", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		mockRepo.On("Delete", uint(1)).Return(nil)
 
@@ -278,8 +241,9 @@ func TestUserUseCase_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("should return error when delete fails", func(t *testing.T) {
-		mockRepo := &MockUserRepository{}
-		uc := usecase.NewUserUseCase(mockRepo)
+		mockRepo := repositoryMock.NewMockUserRepo()
+		mockHashing := middlewareMock.NewMockHashing()
+		uc := usecase.NewUserUseCase(mockRepo, mockHashing)
 
 		mockRepo.On("Delete", uint(2)).Return(errors.New("delete failed"))
 

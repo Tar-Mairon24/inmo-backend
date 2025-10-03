@@ -1,9 +1,9 @@
-package mocks
+package usecaseMocks
 
 import (
-	"inmo-backend/internal/domain/models"
-
 	"github.com/stretchr/testify/mock"
+
+	"inmo-backend/internal/domain/models"
 )
 
 type MockUserUseCase struct {
