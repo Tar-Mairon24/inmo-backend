@@ -13,10 +13,12 @@ func setupAuthRoutes(rg *gin.RouterGroup, authHandler *handler.AuthHandler) {
 	{
 		auth.POST("/login", authHandler.UserLogin)   // POST /api/v1/auth/login
 		auth.POST("/refresh-token", authHandler.RefreshToken) // POST /api/v1/auth/refresh-token
+		auth.POST("/logout/:id", authHandler.UserLogout) // POST /api/v1/auth/logout
+		auth.GET("/status", authHandler.GetStatus) // POST /api/v1/auth/status
 	}
 }
 
-func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtService ports.JWTService) {
+func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtService ports.JWTService, middleware middleware.AuthMiddlewareInterface) {
 	users := rg.Group("/users")
 	users.Use(middleware.JWTAuthMiddleware(jwtService))
 	{
@@ -28,7 +30,7 @@ func setupUserRoutes(rg *gin.RouterGroup, userHandler *handler.UserHandler, jwtS
 	}
 }
 
-func setupPropertyRoutes(rg *gin.RouterGroup, propertyHandler *handler.PropertyHandler, jwtService ports.JWTService) {
+func setupPropertyRoutes(rg *gin.RouterGroup, propertyHandler *handler.PropertyHandler, jwtService ports.JWTService, middleware middleware.AuthMiddlewareInterface) {
 	properties := rg.Group("/properties")
 	properties.Use(middleware.JWTAuthMiddleware(jwtService))
 	{

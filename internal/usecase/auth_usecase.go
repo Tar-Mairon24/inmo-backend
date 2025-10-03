@@ -12,43 +12,58 @@ import (
 )
 
 type authUseCase struct {
-	repo        ports.UserRepository
-	tokenRepo   ports.TokenRepository
-	jwtService  ports.JWTService
+	repo          	ports.UserRepository
+	tokenRepo     	ports.TokenRepository
+	jwtService     	ports.JWTService
+	hashing       	middleware.HashingInterface
+	authMiddleware 	middleware.AuthMiddlewareInterface
 }
 
-func NewAuthUseCase(repo ports.UserRepository, tokenRepo ports.TokenRepository, jwtService ports.JWTService) ports.AuthUseCase {
+func NewAuthUseCase(repo ports.UserRepository, tokenRepo ports.TokenRepository, jwtService ports.JWTService, hashing middleware.HashingInterface, authMiddleware middleware.AuthMiddlewareInterface) ports.AuthUseCase {
 	return &authUseCase{
-		repo:       repo,
-		tokenRepo:  tokenRepo,
-		jwtService: jwtService,
+		repo:           repo,
+		tokenRepo:      tokenRepo,
+		jwtService:     jwtService,
+		hashing:        hashing,
+		authMiddleware: authMiddleware,
 	}
 }
 
-func (uc *authUseCase) Login(email string, password string) (*models.LoginResponse, error) {
+func (au *authUseCase) Login(email string, password string) (*models.LoginResponse, error) {
 	if email == "" || password == "" {
 		logrus.Error("Email and password cannot be empty")
 		return nil, errors.New("email and password cannot be empty")
 	}
-	user, err := uc.repo.GetByEmail(email)
+	user, err := au.repo.GetByEmail(email)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to get user by email")
 		return nil, errors.New("user not found")
 	}
 
-	if err := middleware.VerifyPassword(user.Password, password); err != nil {
+	if err := au.hashing.VerifyPassword(user.Password, password); err != nil {
 		logrus.WithError(err).Error("Password verification failed")
 		return nil, err
 	}
 
-	refreshToken, idToken, err := middleware.GenerateRefreshToken()
+	oldtoken, err := au.tokenRepo.GetTokenByUserID(user.ID)
+	if err != nil {
+		logrus.Warn("Failed to get old refresh token, proceeding to create a new one")
+	}
+	if oldtoken != nil {
+		err = au.tokenRepo.DeleteToken(oldtoken.ID)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to delete old refresh token")
+			return nil, err
+		}
+	}
+
+	refreshToken, idToken, err := au.authMiddleware.GenerateRefreshToken()
 	if err != nil {
 		logrus.WithError(err).Error("Failed to generate refresh token")
 		return nil, err
 	}
-	logrus.Infof("Generated refresh token: %s", refreshToken)
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	err = uc.tokenRepo.SaveToken(&models.RefreshToken{
+	err = au.tokenRepo.SaveToken(&models.RefreshToken{
 		ID:        idToken,
 		UserID:    user.ID,
 		Token:     refreshToken,
@@ -59,7 +74,7 @@ func (uc *authUseCase) Login(email string, password string) (*models.LoginRespon
 		return nil, err
 	}
 
-	token, err := uc.jwtService.GenerateToken(user)
+	token, err := au.jwtService.GenerateToken(user)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to generate token")
 		return nil, err
@@ -73,19 +88,23 @@ func (uc *authUseCase) Login(email string, password string) (*models.LoginRespon
 	}, nil
 }
 
-func (uc *authUseCase) Logout(userID uint) error {
+func (au *authUseCase) Logout(userID uint) error {
 	if userID == 0 {
 		logrus.Error("User ID cannot be empty")
 		return errors.New("user ID cannot be empty")
 	}
 
-	tokenResponseID, err := uc.tokenRepo.GetTokenIDByUserID(userID)
+	tokenResponseID, err := au.tokenRepo.GetTokenIDByUserID(userID)
 	if err != nil {
-		logrus.WithError(err).Error("Failed to get user ID by token")
+		logrus.WithError(err).Error("Failed to get token ID by user ID")
 		return err
 	}
+	if tokenResponseID == "" {
+		logrus.Warn("No token found for the given user ID")
+		return errors.New("no token found for the given user ID, user was not logged in")
+	}
 
-	err = uc.tokenRepo.DeleteToken(tokenResponseID)
+	err = au.tokenRepo.DeleteToken(tokenResponseID)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to delete token")
 		return err
@@ -93,19 +112,19 @@ func (uc *authUseCase) Logout(userID uint) error {
 	return nil
 }
 
-func (uc *authUseCase) RefreshToken(data models.RefreshTokenData) (*models.RefreshTokenData, error) {
+func (au *authUseCase) RefreshToken(data models.RefreshTokenData) (*models.RefreshTokenData, error) {
 	if data.JwtToken == "" || data.RefreshToken == "" {
 		err := errors.New("JWT token and refresh token cannot be empty")
 		return nil, err
 	}
 
-	UserID, err := uc.jwtService.GetUserIDFromClaims(data.JwtToken)
+	UserID, err := au.jwtService.GetUserIDFromClaims(data.JwtToken)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to get user ID from JWT claims")
 		return nil, err
 	}
 
-	refreshToken, err := uc.tokenRepo.GetTokenByUserID(UserID)
+	refreshToken, err := au.tokenRepo.GetTokenByUserID(UserID)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to get refresh token by user ID")
 		return nil, err
@@ -124,7 +143,7 @@ func (uc *authUseCase) RefreshToken(data models.RefreshTokenData) (*models.Refre
 		return nil, errors.New("invalid refresh token")
 	}
 
-	newJwtToken, err := uc.jwtService.RefreshToken(data.JwtToken)
+	newJwtToken, err := au.jwtService.RefreshToken(data.JwtToken)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to refresh token")
 		return nil, err
@@ -134,4 +153,32 @@ func (uc *authUseCase) RefreshToken(data models.RefreshTokenData) (*models.Refre
 		JwtToken:     newJwtToken,
 		RefreshToken: refreshToken.Token,
 	}, nil
+}
+
+func (au *authUseCase) GetStatus(userID uint, refreshToken string) error {
+	if userID == 0 || refreshToken == "" {
+		err := errors.New("user ID and refresh token cannot be empty")
+		return err
+	}
+
+	savedToken, err := au.tokenRepo.GetTokenByUserID(userID)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get refresh token by user ID")
+		return err
+	}
+	if savedToken == nil {
+		logrus.Error("Refresh token not found")
+		return errors.New("refresh token not found")
+	}
+	if savedToken.ExpiresAt < time.Now().Unix() {
+		logrus.Error("Refresh token expired")
+		return errors.New("refresh token expired")
+	}
+
+	if savedToken.Token == "" || savedToken.Token != refreshToken {
+		logrus.Error("Invalid refresh token")
+		return errors.New("invalid refresh token")
+	}
+
+	return nil
 }

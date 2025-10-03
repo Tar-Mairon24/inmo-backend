@@ -13,7 +13,18 @@ import (
 	"inmo-backend/internal/domain/ports"
 )
 
-func JWTAuthMiddleware(jwtService ports.JWTService) gin.HandlerFunc {
+type AuthMiddlewareInterface interface {
+	JWTAuthMiddleware(jwtService ports.JWTService) gin.HandlerFunc
+	GenerateRefreshToken() (string, string, error)
+}
+
+type authMiddleware struct{}
+
+func NewAuthMiddleware() AuthMiddlewareInterface {
+	return &authMiddleware{}
+}
+
+func (m *authMiddleware) JWTAuthMiddleware(jwtService ports.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var token string
 		if cookieToken, err := c.Cookie("jwt_token"); err == nil {
@@ -47,7 +58,7 @@ func JWTAuthMiddleware(jwtService ports.JWTService) gin.HandlerFunc {
 	}
 }
 
-func GenerateRefreshToken() (string, string, error) {
+func (m *authMiddleware) GenerateRefreshToken() (string, string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
 	if err != nil {

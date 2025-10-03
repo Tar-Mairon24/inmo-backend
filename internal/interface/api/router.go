@@ -7,7 +7,7 @@ import (
 	"inmo-backend/cmd/di"
 )
 
-func SetupRouter(handlers *di.Handlers, services di.Services) *gin.Engine {
+func SetupRouter(handlers *di.Handlers, services di.Services, middleware di.Middleware) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -22,8 +22,8 @@ func SetupRouter(handlers *di.Handlers, services di.Services) *gin.Engine {
 	{
 		setupHealthRoutes(v1, handlers.HealthHandler)
 		setupAuthRoutes(v1, handlers.AuthHandler)
-		setupUserRoutes(v1, handlers.UserHandler, services.JwtService)
-		setupPropertyRoutes(v1, handlers.PropertyHandler, services.JwtService)
+		setupUserRoutes(v1, handlers.UserHandler, services.JwtService, middleware.AuthMiddleware)
+		setupPropertyRoutes(v1, handlers.PropertyHandler, services.JwtService, middleware.AuthMiddleware)
 	}
 
 	return r

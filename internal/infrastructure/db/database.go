@@ -72,3 +72,7 @@ func Init() {
 	}
 	logrus.Info("Database initialized successfully")
 }
+
+func GetDBErrorNoRows(err error) bool {
+	return err == sql.ErrNoRows
+}

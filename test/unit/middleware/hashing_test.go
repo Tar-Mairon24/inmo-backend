@@ -9,6 +9,7 @@ import (
 )
 
 func TestHashPassword(t *testing.T) {
+	middleware := middleware.NewHashing()
 	password := "testPassword123"
 
 	hash, err := middleware.HashPassword(password)
@@ -22,6 +23,7 @@ func TestHashPassword(t *testing.T) {
 }
 
 func TestVerifyPassword(t *testing.T) {
+	middleware := middleware.NewHashing()
 	password := "testPassword123"
 	hash, err := middleware.HashPassword(password)
 	assert.NoError(t, err, "Hashing should not return an error")
@@ -39,6 +41,8 @@ func TestVerifyPassword(t *testing.T) {
 	assert.Error(t, err, "Verification should fail with empty hash")
 }
 func TestHashPassword_EmptyPassword(t *testing.T) {
+	middleware := middleware.NewHashing()
+
 	password := ""
 
 	_, err := middleware.HashPassword(password)
@@ -48,6 +52,7 @@ func TestHashPassword_EmptyPassword(t *testing.T) {
 }
 
 func TestHashPassword_ShortPassword(t *testing.T) {
+	middleware := middleware.NewHashing()
 	password := "short"
 
 	_, err := middleware.HashPassword(password)
@@ -57,6 +62,7 @@ func TestHashPassword_ShortPassword(t *testing.T) {
 }
 
 func TestHashPassword_SpecialCharacters(t *testing.T) {
+	middleware := middleware.NewHashing()
 	password := "!@#$$%^&*()_+-=[]{}|;':,.<>/?`~"
 
 	hash, err := middleware.HashPassword(password)
@@ -68,6 +74,7 @@ func TestHashPassword_SpecialCharacters(t *testing.T) {
 }
 
 func TestHashPassword_LongPassword(t *testing.T) {
+	middleware := middleware.NewHashing()
 	password := ""
 	for range 1000 {
 		password += "a"

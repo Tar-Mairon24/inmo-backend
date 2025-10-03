@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -10,6 +11,7 @@ import (
 
 	"inmo-backend/internal/domain/models"
 	"inmo-backend/internal/domain/ports"
+	"inmo-backend/internal/infrastructure/db"
 )
 
 type TokenRepository struct {
@@ -41,7 +43,7 @@ func (r *TokenRepository) SaveToken(token *models.RefreshToken) error {
 		return err
 	}
 
-	logrus.Infof("Refresh token saved successfully: %s", token.ID)
+	logrus.Info("New refresh token saved successfully")
 	return nil
 }
 
@@ -56,7 +58,17 @@ func (r *TokenRepository) DeleteToken(tokenID string) error {
 
 	ctx := context.Background()
 	_, err = r.db.ExecContext(ctx, sql, args...)
-	return err
+	if err != nil {
+		if db.GetDBErrorNoRows(err) {
+			logrus.Warn("No refresh token found with the provided ID")
+			return nil
+		}
+		logrus.WithError(err).Error("Failed to delete refresh token")
+		return err
+	}
+
+	logrus.Info("Refresh token deleted successfully")
+	return nil
 }
 
 func (r *TokenRepository) GetTokenIDByUserID(userID uint) (string, error)  {
@@ -73,6 +85,10 @@ func (r *TokenRepository) GetTokenIDByUserID(userID uint) (string, error)  {
 	ctx := context.Background()
 	err = r.db.QueryRowContext(ctx, sql, args...).Scan(&refreshTokenID)
 	if err != nil {
+		if db.GetDBErrorNoRows(err) {
+			logrus.Warn("No refresh token found with the provided user ID")
+			return "", errors.New("no token found")
+		}
 		return "", err
 	}
 
@@ -94,7 +110,11 @@ func (r *TokenRepository) GetTokenByUserID(userID uint) (*models.RefreshToken, e
 	ctx := context.Background()
 	err = r.db.QueryRowContext(ctx, sql, args...).Scan(&token.ID, &token.UserID, &token.Token, &token.ExpiresAt, &token.CreatedAt)
 	if err != nil {
-		logrus.WithError(err).Error("Failed to execute query or scan result")
+		if db.GetDBErrorNoRows(err) {
+			logrus.Warn("No refresh token found for the provided user ID")
+			return nil, nil
+		}
+		logrus.WithError(err).Error("Failed to execute query")
 		return nil, err
 	}
 

@@ -24,11 +24,11 @@ func NewJWTService(userRepo ports.UserRepository) *JWTService {
 	if secret == "" {
 		logrus.Fatal("JWT_SECRET environment variable is not set")
 	}
-	expiration := 24 * time.Hour
-	if envExp := os.Getenv("JWT_EXPIRATION_HOURS"); envExp != "" {
-		if hours, err := time.ParseDuration(envExp + "h"); err == nil {
-			logrus.Infof("Using custom JWT expiration: %s", hours)
-			expiration = hours
+	expiration := 1 * time.Minute
+	if envExp := os.Getenv("JWT_EXPIRATION_MINUTES"); envExp != "" {
+		if minutes, err := time.ParseDuration(envExp + "m"); err == nil {
+			logrus.Infof("Using custom JWT expiration: %s", minutes)
+			expiration = minutes
 		}
 	}
 	return &JWTService{
@@ -63,7 +63,7 @@ func (j *JWTService) GenerateToken(user *models.User) (string, error) {
 		return "", err
 	}
 
-	logrus.Debugf("Generated JWT token for user %d", user.ID)
+	logrus.Infof("Generated JWT token for user %d", user.ID)
 	return signedToken, nil
 }
 
@@ -85,7 +85,7 @@ func (j *JWTService) ValidateToken(tokenString string) (*models.JWTClaims, error
 	}
 
 	if claims, ok := parsedToken.Claims.(*models.JWTClaims); ok && parsedToken.Valid {
-		logrus.Debugf("Successfully validated JWT token for user %d", claims.ID)
+		logrus.Infof("Successfully validated JWT token for user %d", claims.ID)
 		return claims, nil
 	}
 
@@ -94,7 +94,6 @@ func (j *JWTService) ValidateToken(tokenString string) (*models.JWTClaims, error
 }
 
 func (j *JWTService) RefreshToken(tokenString string) (string, error) {
-	logrus.Debug("Refreshing JWT token: " + tokenString)
 	claims, err := j.ValidateToken(tokenString)
 	if err != nil {
 		parsedToken, parseErr := jwt.ParseWithClaims(tokenString, &models.JWTClaims{}, func(token *jwt.Token) (any, error) {
@@ -131,14 +130,22 @@ func (j *JWTService) RefreshToken(tokenString string) (string, error) {
 		return "", err
 	}
 
-	logrus.Infof("Token refreshed successfully for user %d", claims.ID)
 	return newToken, nil
 }
 
 func (j *JWTService) GetUserIDFromClaims(tokenString string) (uint, error) {
-	claims, err := j.ValidateToken(tokenString)
+	parsedToken, err := jwt.ParseWithClaims(tokenString, &models.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return j.secret, nil
+	}, jwt.WithoutClaimsValidation())
 	if err != nil {
+		logrus.WithError(err).Error("Failed to parse JWT token for user ID extraction")
 		return 0, err
 	}
-	return claims.ID, nil
+
+	if claims, ok := parsedToken.Claims.(*models.JWTClaims); ok {
+		return claims.ID, nil
+	}
+
+	logrus.Error("Invalid JWT token claims for user ID extraction")
+	return 0, errors.New("invalid token claims")
 }
