@@ -199,64 +199,7 @@ func TestCreateProperty_UsecaseError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockUC.AssertExpectations(t)
 }
-func TestUpdateProperty_Success(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	mockUC := usecaseMocks.NewMockPropertyUseCase()
-	expected := &models.PropertyResponse{ID: 1, Title: "Updated Property"}
-	mockUC.On("UpdateProperty", mock.AnythingOfType("*models.Property")).Return(expected, nil)
 
-	h := handler.NewPropertyHandler(mockUC)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
-	c.Request, _ = http.NewRequest("PUT", "/properties/1", nil)
-	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("Content-Type", "application/json")
-	c.Request.Body = io.NopCloser(strings.NewReader(`{"id":1,"title":"Updated Property"}`))
-
-	h.UpdateProperty(c)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	mockUC.AssertExpectations(t)
-}
-
-func TestUpdateProperty_InvalidBody(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	mockUC := usecaseMocks.NewMockPropertyUseCase()
-	h := handler.NewPropertyHandler(mockUC)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
-	c.Request, _ = http.NewRequest("PUT", "/properties/1", nil)
-	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("Content-Type", "application/json")
-	c.Request.Body = io.NopCloser(strings.NewReader(`{invalid json}`))
-
-	h.UpdateProperty(c)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestUpdateProperty_UsecaseError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	mockUC := usecaseMocks.NewMockPropertyUseCase()
-	expected := &models.PropertyResponse{ID: 1, Title: "Updated Property"}
-	mockUC.On("UpdateProperty", mock.AnythingOfType("*models.Property")).Return(expected, errors.New("db error"))
-
-	h := handler.NewPropertyHandler(mockUC)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
-	c.Request, _ = http.NewRequest("PUT", "/properties/1", nil)
-	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("Content-Type", "application/json")
-	c.Request.Body = io.NopCloser(strings.NewReader(`{"id":1,"title":"Updated Property"}`))
-
-	h.UpdateProperty(c)
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	mockUC.AssertExpectations(t)
-}
 func TestDeleteProperty_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockUC := usecaseMocks.NewMockPropertyUseCase()
@@ -314,3 +257,94 @@ func TestDeleteProperty_UsecaseError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	mockUC.AssertExpectations(t)
 }
+
+func TestUpdateProperty_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUC := usecaseMocks.NewMockPropertyUseCase()
+	expected := &models.PropertyResponse{ID: 1, Title: "Updated Property"}
+	mockUC.On("UpdateProperty", mock.AnythingOfType("*models.Property")).Return(expected, nil)
+
+	h := handler.NewPropertyHandler(mockUC)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "1"}}
+
+	c.Request, _ = http.NewRequest("PUT", "/properties/1", nil)
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("Content-Type", "application/json")
+	c.Request.Body = io.NopCloser(strings.NewReader(`{"title":"Updated Property"}`))
+
+	h.UpdateProperty(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	mockUC.AssertExpectations(t)
+}
+
+func TestUpdateProperty_InvalidID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUC := usecaseMocks.NewMockPropertyUseCase()
+	h := handler.NewPropertyHandler(mockUC)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "abc"}}
+
+	h.UpdateProperty(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdateProperty_NegativeID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUC := usecaseMocks.NewMockPropertyUseCase()
+	h := handler.NewPropertyHandler(mockUC)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "-2"}}
+
+	h.UpdateProperty(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdateProperty_InvalidBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUC := usecaseMocks.NewMockPropertyUseCase()
+	h := handler.NewPropertyHandler(mockUC)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "1"}}
+
+	c.Request, _ = http.NewRequest("PUT", "/properties/1", nil)
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("Content-Type", "application/json")
+	c.Request.Body = io.NopCloser(strings.NewReader(`{invalid json}`))
+
+	h.UpdateProperty(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdateProperty_UsecaseError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUC := usecaseMocks.NewMockPropertyUseCase()
+	var propertyResp *models.PropertyResponse = nil
+	mockUC.On("UpdateProperty", mock.AnythingOfType("*models.Property")).Return(propertyResp, errors.New("db error"))
+
+	h := handler.NewPropertyHandler(mockUC)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{{Key: "id", Value: "2"}}
+
+	c.Request, _ = http.NewRequest("PUT", "/properties/2", nil)
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("Content-Type", "application/json")
+	c.Request.Body = io.NopCloser(strings.NewReader(`{"title":"Some Title"}`))
+
+	h.UpdateProperty(c)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	mockUC.AssertExpectations(t)
+}
+
+
+
