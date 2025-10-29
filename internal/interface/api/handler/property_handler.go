@@ -109,6 +109,16 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 	logrus.Info("UpdateProperty endpoint called")
 
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		logrus.WithError(err).Error("Invalid property ID")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid property ID",
+			"message": "Property ID must be a positive integer",
+		})
+		return
+	}
 	var property models.Property
 	if err := c.ShouldBindJSON(&property); err != nil {
 		logrus.WithError(err).Error("Invalid request body")
@@ -119,6 +129,7 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 		return
 	}
 
+	property.ID = uint(id)
 	updatedProperty, err := h.propertyUsecase.UpdateProperty(&property)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
